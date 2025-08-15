@@ -1524,7 +1524,12 @@
                                 รายงานแจ้งซ่อม
                             </button>
                             <button onClick={() => setActiveApp('fuel')} className={`w-1/3 p-3 rounded-md font-semibold transition-colors duration-300 flex items-center justify-center ${activeApp === 'fuel' ? 'main-nav-active' : 'main-nav-inactive'}`}>
-                                <Icons name="fuelPump" className="w-5 h-5 mr-2" />
+                                <img
+  src="https://img.icons8.com/?size=50&id=8712&format=png"
+  alt="EV Charging"
+  className="w-5 h-5 mr-2"
+/>
+
                                 สรุปเบิกจ่ายน้ำมัน
                             </button>
                             <button onClick={() => setActiveApp('ev')} className={`w-1/3 p-3 rounded-md font-semibold transition-colors duration-300 flex items-center justify-center ${activeApp === 'ev' ? 'main-nav-active' : 'main-nav-inactive'}`}>
@@ -1546,4 +1551,3 @@
     </script>
 </body>
 </html>
-

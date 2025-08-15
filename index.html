@@ -1168,7 +1168,8 @@
 
             const dateRange = useMemo(() => {
                 if(filteredData.length === 0) return { startDate: null, endDate: null };
-                const dates = filteredData.map(item => parseDate(item.date).getTime());
+                const dates = filteredData.map(item => parseDate(item.date).getTime()).filter(t => !isNaN(t));
+                if(dates.length === 0) return { startDate: null, endDate: null };
                 const startDate = new Date(Math.min(...dates));
                 const endDate = new Date(Math.max(...dates));
                 return { startDate, endDate };
@@ -1324,11 +1325,26 @@
                 });
             };
             
-            const { totalKwh, totalCost } = useMemo(() => {
+            const { totalKwh, totalCost, avgKwhPerDay, avgCostPerDay } = useMemo(() => {
+                if (filteredData.length === 0) {
+                    return { totalKwh: 0, totalCost: 0, avgKwhPerDay: 0, avgCostPerDay: 0 };
+                }
                 const kwh = filteredData.reduce((sum, item) => sum + (parseFloat(item.units) || 0), 0);
                 const cost = filteredData.reduce((sum, item) => sum + (parseFloat(item.electricityCost) || 0), 0);
-                return { totalKwh: kwh, totalCost: cost };
-            }, [filteredData]);
+
+                let numberOfDays = 0;
+                if (dateRange.startDate && dateRange.endDate) {
+                    const diffTime = Math.abs(dateRange.endDate.getTime() - dateRange.startDate.getTime());
+                    numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                } else if (filteredData.length > 0) {
+                     numberOfDays = 1;
+                }
+
+                const avgKwhPerDay = numberOfDays > 0 ? kwh / numberOfDays : 0;
+                const avgCostPerDay = numberOfDays > 0 ? cost / numberOfDays : 0;
+
+                return { totalKwh: kwh, totalCost: cost, avgKwhPerDay, avgCostPerDay };
+            }, [filteredData, dateRange]);
 
             const summaryFooterText = dateRange.startDate && dateRange.endDate 
                 ? `ข้อมูล ณ ${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`
@@ -1349,9 +1365,11 @@
                         </select>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                         <SummaryCard title="ปริมาณการใช้ไฟทั้งหมด" value={formatNumber(totalKwh)} unit="kWh" icon={<Icons name="bolt" />} color={{ bg: 'bg-sky-100', icon: 'text-sky-600', border: 'border-sky-500' }} footerText={summaryFooterText} />
                         <SummaryCard title="ค่าไฟฟ้าทั้งหมด" value={formatPrice(totalCost)} unit="บาท" icon={<Icons name="balance" />} color={{ bg: 'bg-amber-100', icon: 'text-amber-600', border: 'border-amber-500' }} footerText={summaryFooterText}/>
+                        <SummaryCard title="ใช้ไฟเฉลี่ยต่อวัน" value={formatNumber(avgKwhPerDay)} unit="kWh" icon={<Icons name="bolt" />} color={{ bg: 'bg-teal-100', icon: 'text-teal-600', border: 'border-teal-500' }} footerText="คำนวณจากช่วงวันที่ที่เลือก" />
+                        <SummaryCard title="ค่าไฟเฉลี่ยต่อวัน" value={formatPrice(avgCostPerDay)} unit="บาท" icon={<Icons name="balance" />} color={{ bg: 'bg-indigo-100', icon: 'text-indigo-600', border: 'border-indigo-500' }} footerText="คำนวณจากช่วงวันที่ที่เลือก" />
                     </div>
                     
                     <EVChargingCharts chartData={chartData} />

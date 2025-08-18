@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
+<link rel="icon" type="image/png" href="https://img.icons8.com/?size=64&id=xVnReHOxsQVt&format=png">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dashboard รายงานภาพรวม</title>
@@ -691,10 +692,12 @@
 
             return (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <BarChart data={dieselPriceChart} color="bg-sky-500" title="10 อันดับรถที่เบิกดีเซลสูงสุด (บาท)" />
                     <BarChart data={dieselLiterChart} color="bg-sky-600" title="10 อันดับรถที่เบิกดีเซลสูงสุด (ลิตร)" />
-                    <BarChart data={benzenePriceChart} color="bg-amber-500" title="10 อันดับรถที่เบิกเบนซินสูงสุด (บาท)" />
-                    <BarChart data={benzeneLiterChart} color="bg-amber-600" title="10 อันดับรถที่เบิกเบนซินสูงสุด (ลิตร)" />
+                    <BarChart data={dieselPriceChart} color="bg-sky-500" title="10 อันดับรถที่เบิกดีเซลสูงสุด (บาท)" />
+                    <BarChart data={benzeneLiterChart} color="bg-amber-600" title="อันดับรถที่เบิกเบนซินสูงสุด (ลิตร)" />
+                    <BarChart data={benzenePriceChart} color="bg-amber-500" title="อันดับรถที่เบิกเบนซินสูงสุด (บาท)" />
+                    
+
                 </div>
             );
         };

@@ -919,7 +919,6 @@
             const filteredData = useMemo(() => {
                 const filterByDate = (d) => {
                     if (!d) return [];
-                    // Exclude "ยอดยกมา" from all dynamic calculations
                     const dataWithoutCarryOver = d.filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
 
                     if (selectedYear === 'all') return dataWithoutCarryOver;
@@ -942,7 +941,7 @@
                 const receiving = filteredData.receiving;
                 const supply = filteredData.supply;
 
-                const aggregateFuelData = (data, valueField, isLiter = false) => {
+                const aggregateFuelData = (data, valueField) => {
                     const summary = { 'ดีเซล': 0, 'เบนซิน': 0 };
                     (data || []).forEach(item => {
                         const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
@@ -958,22 +957,35 @@
                 };
 
                 const receivedBahtByType = aggregateFuelData(receiving, 'ราคาน้ำมัน');
-                const receivedLitersByType = aggregateFuelData(receiving, 'รับเข้า', true);
+                const receivedLitersByType = aggregateFuelData(receiving, 'รับเข้า');
                 const suppliedBahtByType = aggregateFuelData(supply, 'ราคาน้ำมัน');
-                const suppliedLitersByType = aggregateFuelData(supply, 'จ่ายออก /ลิตร', true);
+                const suppliedLitersByType = aggregateFuelData(supply, 'จ่ายออก /ลิตร');
 
-                // Balance and Average Price calculations should always use the full dataset, excluding "ยอดยกมา"
-                const fullReceivingData = (data.receiving || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
-                const fullSupplyData = (data.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
+                // Balance calculation logic
+                const allDataBeforeEndDate = (d) => {
+                    if (!d) return [];
+                    if (selectedYear === 'all') return d;
+                    
+                    const endOfMonth = new Date(parseInt(selectedYear, 10), parseInt(selectedMonth, 10) + 1, 0);
+                    
+                    return d.filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        return date && date <= endOfMonth;
+                    });
+                };
+                
+                const receivingBefore = allDataBeforeEndDate(data.receiving);
+                const supplyBefore = allDataBeforeEndDate(data.supply);
 
-                const totalReceivedLiters = aggregateFuelData(fullReceivingData, 'รับเข้า', true);
-                const totalSuppliedLiters = aggregateFuelData(fullSupplyData, 'จ่ายออก /ลิตร', true);
+                const totalReceivedLiters = aggregateFuelData(receivingBefore, 'รับเข้า');
+                const totalSuppliedLiters = aggregateFuelData(supplyBefore, 'จ่ายออก /ลิตร');
+                
                 const fuelBalanceByType = {
                     'ดีเซล': (totalReceivedLiters['ดีเซล'] || 0) - (totalSuppliedLiters['ดีเซล'] || 0),
                     'เบนซิน': (totalReceivedLiters['เบนซิน'] || 0) - (totalSuppliedLiters['เบนซิน'] || 0),
                 };
 
-                const totalReceivedValue = aggregateFuelData(fullReceivingData, 'ราคาน้ำมัน');
+                const totalReceivedValue = aggregateFuelData(receivingBefore, 'ราคาน้ำมัน');
                 const avgPriceByType = {
                     'ดีเซล': totalReceivedLiters['ดีเซล'] > 0 ? totalReceivedValue['ดีเซล'] / totalReceivedLiters['ดีเซล'] : 0,
                     'เบนซิน': totalReceivedLiters['เบนซิน'] > 0 ? totalReceivedValue['เบนซิน'] / totalReceivedLiters['เบนซิน'] : 0,
@@ -993,7 +1005,7 @@
                         fuelBalanceValueByType
                     }
                 };
-            }, [filteredData, data]); 
+            }, [filteredData, data, selectedYear, selectedMonth]); 
 
             return (
                  <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
@@ -1012,23 +1024,23 @@
                         <div>
                              <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดรับเข้า</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {summary.receivedLitersByType['ดีเซล'] > 0 && <SummaryCard key="r-liter-diesel" title="รับเข้า ดีเซล (ลิตร)" value={formatNumber(summary.receivedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
-                                {summary.receivedLitersByType['เบนซิน'] > 0 && <SummaryCard key="r-liter-benzene" title="รับเข้า เบนซิน (ลิตร)" value={formatNumber(summary.receivedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
-                                {summary.receivedBahtByType['ดีเซล'] > 0 && <SummaryCard key="r-baht-diesel" title="รับเข้า ดีเซล (บาท)" value={formatPrice(summary.receivedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
-                                {summary.receivedBahtByType['เบนซิน'] > 0 && <SummaryCard key="r-baht-benzene" title="รับเข้า เบนซิน (บาท)" value={formatPrice(summary.receivedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
+                                <SummaryCard key="r-liter-diesel" title="รับเข้า ดีเซล (ลิตร)" value={formatNumber(summary.receivedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
+                                <SummaryCard key="r-liter-benzene" title="รับเข้า เบนซิน (ลิตร)" value={formatNumber(summary.receivedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
+                                <SummaryCard key="r-baht-diesel" title="รับเข้า ดีเซล (บาท)" value={formatPrice(summary.receivedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
+                                <SummaryCard key="r-baht-benzene" title="รับเข้า เบนซิน (บาท)" value={formatPrice(summary.receivedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
                              </div>
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดจ่ายออก</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {summary.suppliedLitersByType['ดีเซล'] > 0 && <SummaryCard key="s-liter-diesel" title="จ่ายออก ดีเซล (ลิตร)" value={formatNumber(summary.suppliedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
-                                {summary.suppliedLitersByType['เบนซิน'] > 0 && <SummaryCard key="s-liter-benzene" title="จ่ายออก เบนซิน (ลิตร)" value={formatNumber(summary.suppliedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
-                                {summary.suppliedBahtByType['ดีเซล'] > 0 && <SummaryCard key="s-baht-diesel" title="จ่ายออก ดีเซล (บาท)" value={formatPrice(summary.suppliedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
-                                {summary.suppliedBahtByType['เบนซิน'] > 0 && <SummaryCard key="s-baht-benzene" title="จ่ายออก เบนซิน (บาท)" value={formatPrice(summary.suppliedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
+                                <SummaryCard key="s-liter-diesel" title="จ่ายออก ดีเซล (ลิตร)" value={formatNumber(summary.suppliedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
+                                <SummaryCard key="s-liter-benzene" title="จ่ายออก เบนซิน (ลิตร)" value={formatNumber(summary.suppliedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
+                                <SummaryCard key="s-baht-diesel" title="จ่ายออก ดีเซล (บาท)" value={formatPrice(summary.suppliedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
+                                <SummaryCard key="s-baht-benzene" title="จ่ายออก เบนซิน (บาท)" value={formatPrice(summary.suppliedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
                              </div>
                         </div>
                         <div>
-                             <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดคงเหลือ</h3>
+                             <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดคงเหลือ (ณ สิ้นเดือนที่เลือก)</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {summary.fuelBalanceByType['ดีเซล'] !== undefined && <SummaryCard key="b-liter-diesel" title="คงเหลือ ดีเซล (ลิตร)" value={formatNumber(summary.fuelBalanceByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}
                                 {summary.fuelBalanceByType['เบนซิน'] !== undefined && <SummaryCard key="b-liter-benzene" title="คงเหลือ เบนซิน (ลิตร)" value={formatNumber(summary.fuelBalanceByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}

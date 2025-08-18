@@ -892,8 +892,12 @@
             const filteredData = useMemo(() => {
                 const filterByDate = (d) => {
                     if (!d) return [];
-                    if (selectedYear === 'all') return d;
-                    return d.filter(item => {
+                    // Exclude "ยอดยกมา" from all dynamic calculations
+                    const dataWithoutCarryOver = d.filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
+
+                    if (selectedYear === 'all') return dataWithoutCarryOver;
+                    
+                    return dataWithoutCarryOver.filter(item => {
                         const date = parseDate(item['วันที่']);
                         if (!date) return false;
                         const yearMatch = date.getFullYear() === parseInt(selectedYear, 10);
@@ -920,8 +924,8 @@
                 const totalReceivedByType = {};
                 const fuelBalanceValueByType = {};
 
-                // Balance and Average Price calculations should always use the full dataset for accuracy
-                (data.receiving || []).forEach(item => {
+                // Balance and Average Price calculations should always use the full dataset, excluding "ยอดยกมา"
+                (data.receiving || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา').forEach(item => {
                     const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
                     const liters = Number(item['รับเข้า']) || 0;
                     const price = Number(item['ราคาน้ำมัน']) || 0;
@@ -934,7 +938,7 @@
                     totalReceivedByType[type].totalLiters += liters;
                 });
 
-                (data.supply || []).forEach(item => {
+                (data.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา').forEach(item => {
                     const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
                     const liters = Number(item['จ่ายออก /ลิตร']) || 0;
                     if (!fuelBalanceByType[type]) fuelBalanceByType[type] = { received: 0, supplied: 0 };
@@ -955,7 +959,7 @@
                     fuelBalanceValueByType[type] = remainingLiters * avgPrice;
                 });
 
-                // Display calculations for cards use filtered data
+                // Display calculations for cards use filtered data (which already excludes "ยอดยกมา")
                 receiving.forEach(item => {
                     const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
                     const price = Number(item['ราคาน้ำมัน']) || 0;

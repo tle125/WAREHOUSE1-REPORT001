@@ -651,26 +651,50 @@
         // ### FUEL APP COMPONENTS (START) ###
         // ##################################################################
         const FuelCharts = ({ supplyData }) => {
-             const chartData = useMemo(() => {
-                if (!supplyData || supplyData.length === 0) return [];
+            const { dieselPriceChart, dieselLiterChart, benzenePriceChart, benzeneLiterChart } = useMemo(() => {
+                if (!supplyData || supplyData.length === 0) {
+                    return { dieselPriceChart: [], dieselLiterChart: [], benzenePriceChart: [], benzeneLiterChart: [] };
+                }
 
-                const vehicleSummary = supplyData.reduce((acc, item) => {
-                    const vehicle = item['เบอร์รถ'] || 'ไม่ระบุ';
-                    const price = parseFloat(item['ราคาน้ำมัน']) || 0;
-                    if (!acc[vehicle]) acc[vehicle] = 0;
-                    acc[vehicle] += price;
-                    return acc;
-                }, {});
+                const processFuelData = (data, valueField, unit) => {
+                    const vehicleSummary = data.reduce((acc, item) => {
+                        const vehicle = item['เบอร์รถ'] || 'ไม่ระบุ';
+                        const value = parseFloat(item[valueField]) || 0;
+                        if (!acc[vehicle]) acc[vehicle] = 0;
+                        acc[vehicle] += value;
+                        return acc;
+                    }, {});
 
-                return Object.entries(vehicleSummary)
-                    .map(([label, value]) => ({ label, value, displayValue: `${formatPrice(value)} บาท` }))
-                    .sort((a, b) => b.value - a.value)
-                    .slice(0, 10);
+                    return Object.entries(vehicleSummary)
+                        .map(([label, value]) => ({ label, value, displayValue: `${formatNumber(value)} ${unit}` }))
+                        .sort((a, b) => b.value - a.value)
+                        .slice(0, 10);
+                };
+                
+                const dieselData = supplyData.filter(item => {
+                    const fuelType = item['ชนิดน้ำมัน'] ? item['ชนิดน้ำมัน'].toLowerCase() : '';
+                    return fuelType.includes('ดีเซล');
+                });
+                const benzeneData = supplyData.filter(item => {
+                    const fuelType = item['ชนิดน้ำมัน'] ? item['ชนิดน้ำมัน'].toLowerCase() : '';
+                    return fuelType.includes('เบนซิน') || fuelType.includes('แก๊สโซฮอล์') || fuelType.includes('91') || fuelType.includes('95');
+                });
+
+                const dieselPriceChart = processFuelData(dieselData, 'ราคาน้ำมัน', 'บาท');
+                const dieselLiterChart = processFuelData(dieselData, 'จ่ายออก /ลิตร', 'ลิตร');
+                const benzenePriceChart = processFuelData(benzeneData, 'ราคาน้ำมัน', 'บาท');
+                const benzeneLiterChart = processFuelData(benzeneData, 'จ่ายออก /ลิตร', 'ลิตร');
+
+                return { dieselPriceChart, dieselLiterChart, benzenePriceChart, benzeneLiterChart };
+
             }, [supplyData]);
 
             return (
-                <div className="grid grid-cols-1 mb-6">
-                    <BarChart data={chartData} color="bg-red-500" title="10 อันดับรถที่เบิกน้ำมันสูงสุด (บาท)" />
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <BarChart data={dieselPriceChart} color="bg-sky-500" title="10 อันดับรถที่เบิกดีเซลสูงสุด (บาท)" />
+                    <BarChart data={dieselLiterChart} color="bg-sky-600" title="10 อันดับรถที่เบิกดีเซลสูงสุด (ลิตร)" />
+                    <BarChart data={benzenePriceChart} color="bg-amber-500" title="10 อันดับรถที่เบิกเบนซินสูงสุด (บาท)" />
+                    <BarChart data={benzeneLiterChart} color="bg-amber-600" title="10 อันดับรถที่เบิกเบนซินสูงสุด (ลิตร)" />
                 </div>
             );
         };
@@ -914,71 +938,47 @@
             const { summary } = useMemo(() => {
                 const receiving = filteredData.receiving;
                 const supply = filteredData.supply;
-                
-                const fuelBalanceByType = {};
-                const receivedBahtByType = {};
-                const suppliedBahtByType = {};
-                const receivedLitersByType = {};
-                const suppliedLitersByType = {};
-                const avgPriceByType = {};
-                const totalReceivedByType = {};
-                const fuelBalanceValueByType = {};
+
+                const aggregateFuelData = (data, valueField, isLiter = false) => {
+                    const summary = { 'ดีเซล': 0, 'เบนซิน': 0 };
+                    (data || []).forEach(item => {
+                        const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
+                        const value = Number(item[valueField]) || 0;
+                        const fuelTypeStr = type.toLowerCase();
+                        if (fuelTypeStr.includes('ดีเซล')) {
+                            summary['ดีเซล'] += value;
+                        } else if (fuelTypeStr.includes('เบนซิน') || fuelTypeStr.includes('แก๊สโซฮอล์') || fuelTypeStr.includes('91') || fuelTypeStr.includes('95')) {
+                            summary['เบนซิน'] += value;
+                        }
+                    });
+                    return summary;
+                };
+
+                const receivedBahtByType = aggregateFuelData(receiving, 'ราคาน้ำมัน');
+                const receivedLitersByType = aggregateFuelData(receiving, 'รับเข้า', true);
+                const suppliedBahtByType = aggregateFuelData(supply, 'ราคาน้ำมัน');
+                const suppliedLitersByType = aggregateFuelData(supply, 'จ่ายออก /ลิตร', true);
 
                 // Balance and Average Price calculations should always use the full dataset, excluding "ยอดยกมา"
-                (data.receiving || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา').forEach(item => {
-                    const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
-                    const liters = Number(item['รับเข้า']) || 0;
-                    const price = Number(item['ราคาน้ำมัน']) || 0;
+                const fullReceivingData = (data.receiving || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
+                const fullSupplyData = (data.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
 
-                    if (!fuelBalanceByType[type]) fuelBalanceByType[type] = { received: 0, supplied: 0 };
-                    fuelBalanceByType[type].received += liters;
+                const totalReceivedLiters = aggregateFuelData(fullReceivingData, 'รับเข้า', true);
+                const totalSuppliedLiters = aggregateFuelData(fullSupplyData, 'จ่ายออก /ลิตร', true);
+                const fuelBalanceByType = {
+                    'ดีเซล': (totalReceivedLiters['ดีเซล'] || 0) - (totalSuppliedLiters['ดีเซล'] || 0),
+                    'เบนซิน': (totalReceivedLiters['เบนซิน'] || 0) - (totalSuppliedLiters['เบนซิน'] || 0),
+                };
 
-                    if (!totalReceivedByType[type]) totalReceivedByType[type] = { totalPrice: 0, totalLiters: 0 };
-                    totalReceivedByType[type].totalPrice += price;
-                    totalReceivedByType[type].totalLiters += liters;
-                });
-
-                (data.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา').forEach(item => {
-                    const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
-                    const liters = Number(item['จ่ายออก /ลิตร']) || 0;
-                    if (!fuelBalanceByType[type]) fuelBalanceByType[type] = { received: 0, supplied: 0 };
-                    fuelBalanceByType[type].supplied += liters;
-                });
-                
-                Object.keys(totalReceivedByType).forEach(type => {
-                    if (totalReceivedByType[type].totalLiters > 0) {
-                        avgPriceByType[type] = totalReceivedByType[type].totalPrice / totalReceivedByType[type].totalLiters;
-                    } else {
-                        avgPriceByType[type] = 0;
-                    }
-                });
-
-                Object.keys(fuelBalanceByType).forEach(type => {
-                    const remainingLiters = fuelBalanceByType[type].received - fuelBalanceByType[type].supplied;
-                    const avgPrice = avgPriceByType[type] || 0;
-                    fuelBalanceValueByType[type] = remainingLiters * avgPrice;
-                });
-
-                // Display calculations for cards use filtered data (which already excludes "ยอดยกมา")
-                receiving.forEach(item => {
-                    const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
-                    const price = Number(item['ราคาน้ำมัน']) || 0;
-                    const liters = Number(item['รับเข้า']) || 0;
-                    if (!receivedBahtByType[type]) receivedBahtByType[type] = 0;
-                    if (!receivedLitersByType[type]) receivedLitersByType[type] = 0;
-                    receivedBahtByType[type] += price;
-                    receivedLitersByType[type] += liters;
-                });
-
-                supply.forEach(item => {
-                    const type = item['ชนิดน้ำมัน'] || 'ไม่ระบุ';
-                    const price = Number(item['ราคาน้ำมัน']) || 0;
-                    const liters = Number(item['จ่ายออก /ลิตร']) || 0;
-                    if (!suppliedBahtByType[type]) suppliedBahtByType[type] = 0;
-                    if (!suppliedLitersByType[type]) suppliedLitersByType[type] = 0;
-                    suppliedBahtByType[type] += price;
-                    suppliedLitersByType[type] += liters;
-                });
+                const totalReceivedValue = aggregateFuelData(fullReceivingData, 'ราคาน้ำมัน');
+                const avgPriceByType = {
+                    'ดีเซล': totalReceivedLiters['ดีเซล'] > 0 ? totalReceivedValue['ดีเซล'] / totalReceivedLiters['ดีเซล'] : 0,
+                    'เบนซิน': totalReceivedLiters['เบนซิน'] > 0 ? totalReceivedValue['เบนซิน'] / totalReceivedLiters['เบนซิน'] : 0,
+                };
+                const fuelBalanceValueByType = {
+                    'ดีเซล': fuelBalanceByType['ดีเซล'] * avgPriceByType['ดีเซล'],
+                    'เบนซิน': fuelBalanceByType['เบนซิน'] * avgPriceByType['เบนซิน'],
+                };
 
                 return { 
                     summary: {
@@ -1009,34 +1009,28 @@
                         <div>
                              <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดรับเข้า</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {Object.entries(summary.receivedBahtByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, total]) => (
-                                    <SummaryCard key={`r-baht-${type}`} title={`รับเข้า ${type} (บาท)`} value={formatPrice(total)} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
-                                ))}
-                                {Object.entries(summary.receivedLitersByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, total]) => (
-                                    <SummaryCard key={`r-liter-${type}`} title={`รับเข้า ${type} (ลิตร)`} value={formatNumber(total)} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>
-                                ))}
+                                {summary.receivedLitersByType['ดีเซล'] > 0 && <SummaryCard key="r-liter-diesel" title="รับเข้า ดีเซล (ลิตร)" value={formatNumber(summary.receivedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
+                                {summary.receivedLitersByType['เบนซิน'] > 0 && <SummaryCard key="r-liter-benzene" title="รับเข้า เบนซิน (ลิตร)" value={formatNumber(summary.receivedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
+                                {summary.receivedBahtByType['ดีเซล'] > 0 && <SummaryCard key="r-baht-diesel" title="รับเข้า ดีเซล (บาท)" value={formatPrice(summary.receivedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
+                                {summary.receivedBahtByType['เบนซิน'] > 0 && <SummaryCard key="r-baht-benzene" title="รับเข้า เบนซิน (บาท)" value={formatPrice(summary.receivedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="up"/>} color={{bg:'bg-green-100', icon:'text-green-600', border:'border-green-500'}}/>}
                              </div>
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดจ่ายออก</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {Object.entries(summary.suppliedBahtByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, total]) => (
-                                    <SummaryCard key={`s-baht-${type}`} title={`จ่ายออก ${type} (บาท)`} value={formatPrice(total)} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
-                                ))}
-                                {Object.entries(summary.suppliedLitersByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, total]) => (
-                                    <SummaryCard key={`s-liter-${type}`} title={`จ่ายออก ${type} (ลิตร)`} value={formatNumber(total)} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>
-                                ))}
+                                {summary.suppliedLitersByType['ดีเซล'] > 0 && <SummaryCard key="s-liter-diesel" title="จ่ายออก ดีเซล (ลิตร)" value={formatNumber(summary.suppliedLitersByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
+                                {summary.suppliedLitersByType['เบนซิน'] > 0 && <SummaryCard key="s-liter-benzene" title="จ่ายออก เบนซิน (ลิตร)" value={formatNumber(summary.suppliedLitersByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
+                                {summary.suppliedBahtByType['ดีเซล'] > 0 && <SummaryCard key="s-baht-diesel" title="จ่ายออก ดีเซล (บาท)" value={formatPrice(summary.suppliedBahtByType['ดีเซล'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
+                                {summary.suppliedBahtByType['เบนซิน'] > 0 && <SummaryCard key="s-baht-benzene" title="จ่ายออก เบนซิน (บาท)" value={formatPrice(summary.suppliedBahtByType['เบนซิน'])} unit="บาท" icon={<Icons name="down"/>} color={{bg:'bg-red-100', icon:'text-red-600', border:'border-red-500'}}/>}
                              </div>
                         </div>
                         <div>
                              <h3 className="text-lg font-semibold text-slate-700 mb-3">สรุปยอดคงเหลือ</h3>
                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                {Object.entries(summary.fuelBalanceByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, data]) => (
-                                    <SummaryCard key={`b-liter-${type}`} title={`คงเหลือ ${type} (ลิตร)`} value={formatNumber(data.received - data.supplied)} unit="ลิตร" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>
-                                ))}
-                                {Object.entries(summary.fuelBalanceValueByType).sort(([a],[b])=>a.localeCompare(b)).map(([type, value]) => (
-                                    <SummaryCard key={`b-baht-${type}`} title={`มูลค่าคงเหลือ ${type} (บาท)`} value={formatPrice(value)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>
-                                ))}
+                                {summary.fuelBalanceByType['ดีเซล'] !== undefined && <SummaryCard key="b-liter-diesel" title="คงเหลือ ดีเซล (ลิตร)" value={formatNumber(summary.fuelBalanceByType['ดีเซล'])} unit="ลิตร" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}
+                                {summary.fuelBalanceByType['เบนซิน'] !== undefined && <SummaryCard key="b-liter-benzene" title="คงเหลือ เบนซิน (ลิตร)" value={formatNumber(summary.fuelBalanceByType['เบนซิน'])} unit="ลิตร" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}
+                                {summary.fuelBalanceValueByType['ดีเซล'] !== undefined && <SummaryCard key="b-baht-diesel" title="มูลค่าคงเหลือ ดีเซล (บาท)" value={formatPrice(summary.fuelBalanceValueByType['ดีเซล'])} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}
+                                {summary.fuelBalanceValueByType['เบนซิน'] !== undefined && <SummaryCard key="b-baht-benzene" title="มูลค่าคงเหลือ เบนซิน (บาท)" value={formatPrice(summary.fuelBalanceValueByType['เบนซิน'])} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', icon:'text-blue-600', border:'border-blue-500'}}/>}
                              </div>
                         </div>
                     </div>

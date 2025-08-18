@@ -13,7 +13,7 @@
         .main-nav-inactive { background-color: white; color: #334155; }
         .tab-active { border-color: #2563eb; color: #1e40af; }
         .tab-inactive { border-color: transparent; color: #475569; }
-        .pagination-btn { transition: background-color 0.2s; }
+        .pagination-btn { transition: background-color: 0.2s; }
         .pagination-btn-active { background-color: #2563eb; color: white; }
         .pagination-btn-inactive { background-color: white; color: #374151; }
         .modal-backdrop {
@@ -511,7 +511,7 @@
         };
         const VehicleTab = ({ data, isMobile }) => {
             const [period, setPeriod] = useState('all');
-            const [sortBy, setSortBy] = useState('count');
+            const [sortBy, setSortBy] = useState('plate_asc');
             const today = new Date();
             const [year, setYear] = useState(today.getFullYear());
             const [month, setMonth] = useState(today.getMonth());
@@ -525,7 +525,51 @@
                 return processVehicleData(filteredData);
             }, [data, period, year, month]);
 
-            const sortedVehicles = useMemo(() => Object.entries(vehicleData).sort(([, a], [, b]) => { if(sortBy === 'count') return b.count - a.count; return b.totalCost - a.totalCost; }), [vehicleData, sortBy]);
+            const sortedVehicles = useMemo(() => Object.entries(vehicleData).sort(([keyA, statsA], [keyB, statsB]) => {
+                const customPlateSort = (a, b) => {
+                    const partsA = a.split(/[- ]/);
+                    const partsB = b.split(/[- ]/);
+                    const prefixA = partsA[0];
+                    const prefixB = partsB[0];
+                    const numA = parseInt(partsA[1], 10) || 0;
+                    const numB = parseInt(partsB[1], 10) || 0;
+
+                    const getPrefixPriority = (prefix) => {
+                        if (prefix === 'FL') return 1;
+                        if (prefix === 'TT') return 2;
+                        if (prefix === 'TTL') return 3;
+                        return 4;
+                    };
+
+                    const priorityA = getPrefixPriority(prefixA);
+                    const priorityB = getPrefixPriority(prefixB);
+
+                    if (priorityA !== priorityB) {
+                        return priorityA - priorityB;
+                    }
+                    
+                    if (prefixA !== prefixB) {
+                        return prefixA.localeCompare(prefixB);
+                    }
+
+                    return numA - numB;
+                };
+
+                switch (sortBy) {
+                    case 'count_desc':
+                        return statsB.count - statsA.count;
+                    case 'count_asc':
+                        return statsA.count - statsB.count;
+                    case 'price_desc':
+                        return statsB.totalCost - statsA.totalCost;
+                    case 'price_asc':
+                        return statsA.totalCost - statsB.totalCost;
+                    case 'plate_asc':
+                    default:
+                        return customPlateSort(keyA, keyB);
+                }
+            }), [vehicleData, sortBy]);
+
             const countChartData = [...sortedVehicles].sort(([,a],[,b])=>b.count - a.count).slice(0, 10).map(([vehicle, stats]) => ({ label: vehicle, value: stats.count, displayValue: `${stats.count} ครั้ง` }));
             const priceChartData = [...sortedVehicles].sort(([,a],[,b])=>b.totalCost - a.totalCost).slice(0, 10).map(([vehicle, stats]) => ({ label: vehicle, value: stats.totalCost, displayValue: formatPrice(stats.totalCost) }));
             const toggleVehicle = (vehicle) => setExpandedVehicles(prev => { const newSet = new Set(prev); if (newSet.has(vehicle)) newSet.delete(vehicle); else newSet.add(vehicle); return newSet; });
@@ -555,7 +599,13 @@
                     <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
                         <select value={period} onChange={e => setPeriod(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md"><option value="all">ทั้งหมด</option><option value="year">รายปี</option><option value="month">รายเดือน</option></select>
                         {period !== 'all' && (<><select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">{uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}</select>{period === 'month' && (<select value={month} onChange={e => setMonth(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">{Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}</select>)}</>)}
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md"><option value="count">เรียงตามจำนวนครั้ง</option><option value="price">เรียงตามราคารวม</option></select>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="plate_asc">เรียงตามทะเบียน (น้อยไปมาก)</option>
+                            <option value="count_desc">เรียงตามจำนวนครั้ง (มากไปน้อย)</option>
+                            <option value="count_asc">เรียงตามจำนวนครั้ง (น้อยไปมาก)</option>
+                            <option value="price_desc">เรียงตามราคารวม (มากไปน้อย)</option>
+                            <option value="price_asc">เรียงตามราคารวม (น้อยไปมาก)</option>
+                        </select>
                     </div>
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
                         <BarChart data={countChartData} color="bg-blue-500" title="จำนวนครั้งการซ่อม (Top 10)" />
@@ -938,8 +988,8 @@
             }, [data, selectedYear, selectedMonth]);
 
             const { summary } = useMemo(() => {
-                const receiving = filteredData.receiving;
-                const supply = filteredData.supply;
+                const receivingInPeriod = filteredData.receiving;
+                const supplyInPeriod = filteredData.supply;
 
                 const aggregateFuelData = (data, valueField) => {
                     const summary = { 'ดีเซล': 0, 'เบนซิน': 0 };
@@ -956,17 +1006,76 @@
                     return summary;
                 };
 
-                const receivedBahtByType = aggregateFuelData(receiving, 'ราคาน้ำมัน');
-                const receivedLitersByType = aggregateFuelData(receiving, 'รับเข้า');
-                const suppliedBahtByType = aggregateFuelData(supply, 'ราคาน้ำมัน');
-                const suppliedLitersByType = aggregateFuelData(supply, 'จ่ายออก /ลิตร');
+                const receivedBahtByType = aggregateFuelData(receivingInPeriod, 'ราคาน้ำมัน');
+                const receivedLitersByType = aggregateFuelData(receivingInPeriod, 'รับเข้า');
+                const suppliedBahtByType = aggregateFuelData(supplyInPeriod, 'ราคาน้ำมัน');
+                const suppliedLitersByType = aggregateFuelData(supplyInPeriod, 'จ่ายออก /ลิตร');
 
-                // Balance calculation logic
+                // Helper function to get cumulative balance up to a certain date
+                const getCumulativeBalanceByDate = (endDate) => {
+                    const receiving = (data.receiving || []).filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        return date && date <= endDate;
+                    });
+                    const supply = (data.supply || []).filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        return date && date <= endDate;
+                    });
+
+                    const totalReceivedLiters = aggregateFuelData(receiving, 'รับเข้า');
+                    const totalSuppliedLiters = aggregateFuelData(supply, 'จ่ายออก /ลิตร');
+
+                    return {
+                        'ดีเซล': (totalReceivedLiters['ดีเซล'] || 0) - (totalSuppliedLiters['ดีเซล'] || 0),
+                        'เบนซิน': (totalReceivedLiters['เบนซิน'] || 0) - (totalSuppliedLiters['เบนซิน'] || 0),
+                    };
+                };
+
+                let fuelBalanceByType = {};
+                
+                if (selectedYear === 'all') {
+                    // If 'all years' is selected, show the total cumulative balance as before.
+                    const allReceiving = data.receiving || [];
+                    const allSupply = data.supply || [];
+                    const totalReceivedLiters = aggregateFuelData(allReceiving, 'รับเข้า');
+                    const totalSuppliedLiters = aggregateFuelData(allSupply, 'จ่ายออก /ลิตร');
+                    fuelBalanceByType = {
+                        'ดีเซล': (totalReceivedLiters['ดีเซล'] || 0) - (totalSuppliedLiters['ดีเซล'] || 0),
+                        'เบนซิน': (totalReceivedLiters['เบนซิน'] || 0) - (totalSuppliedLiters['เบนซิน'] || 0),
+                    };
+                } else {
+                    // If a specific year/month is selected, calculate the change from the previous period.
+                    let endOfCurrentPeriod, endOfPreviousPeriod;
+                    const year = parseInt(selectedYear, 10);
+
+                    if (selectedMonth === 'all') { // Yearly view
+                        endOfCurrentPeriod = new Date(year, 12, 0); // Last day of the year
+                        endOfPreviousPeriod = new Date(year - 1, 12, 0); // Last day of the previous year
+                    } else { // Monthly view
+                        const month = parseInt(selectedMonth, 10);
+                        endOfCurrentPeriod = new Date(year, month + 1, 0); // Last day of the selected month
+                        endOfPreviousPeriod = new Date(year, month, 0); // Last day of the previous month
+                    }
+                    
+                    endOfCurrentPeriod.setHours(23, 59, 59, 999);
+                    endOfPreviousPeriod.setHours(23, 59, 59, 999);
+
+                    const currentBalance = getCumulativeBalanceByDate(endOfCurrentPeriod);
+                    const previousBalance = getCumulativeBalanceByDate(endOfPreviousPeriod);
+
+                    fuelBalanceByType = {
+                        'ดีเซล': currentBalance['ดีเซล'] - previousBalance['ดีเซล'],
+                        'เบนซิน': currentBalance['เบนซิน'] - previousBalance['เบนซิน'],
+                    };
+                }
+
+                // Value calculation remains based on cumulative average price for stability
                 const allDataBeforeEndDate = (d) => {
                     if (!d) return [];
                     if (selectedYear === 'all') return d;
                     
-                    const endOfMonth = new Date(parseInt(selectedYear, 10), parseInt(selectedMonth, 10) + 1, 0);
+                    const endOfMonth = new Date(parseInt(selectedYear, 10), selectedMonth === 'all' ? 12 : parseInt(selectedMonth, 10) + 1, 0);
+                    endOfMonth.setHours(23, 59, 59, 999);
                     
                     return d.filter(item => {
                         const date = parseDate(item['วันที่']);
@@ -975,17 +1084,9 @@
                 };
                 
                 const receivingBefore = allDataBeforeEndDate(data.receiving);
-                const supplyBefore = allDataBeforeEndDate(data.supply);
-
                 const totalReceivedLiters = aggregateFuelData(receivingBefore, 'รับเข้า');
-                const totalSuppliedLiters = aggregateFuelData(supplyBefore, 'จ่ายออก /ลิตร');
-                
-                const fuelBalanceByType = {
-                    'ดีเซล': (totalReceivedLiters['ดีเซล'] || 0) - (totalSuppliedLiters['ดีเซล'] || 0),
-                    'เบนซิน': (totalReceivedLiters['เบนซิน'] || 0) - (totalSuppliedLiters['เบนซิน'] || 0),
-                };
-
                 const totalReceivedValue = aggregateFuelData(receivingBefore, 'ราคาน้ำมัน');
+                
                 const avgPriceByType = {
                     'ดีเซล': totalReceivedLiters['ดีเซล'] > 0 ? totalReceivedValue['ดีเซล'] / totalReceivedLiters['ดีเซล'] : 0,
                     'เบนซิน': totalReceivedLiters['เบนซิน'] > 0 ? totalReceivedValue['เบนซิน'] / totalReceivedLiters['เบนซิน'] : 0,

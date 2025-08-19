@@ -796,13 +796,163 @@
                 </div>
             );
         };
+        
+        const ComparisonTab = ({ data }) => {
+            const today = new Date();
+            const [selectedVehicle, setSelectedVehicle] = useState('');
+            const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+            const [selectedMonth, setSelectedMonth] = useState(today.getMonth());
+
+            const { uniqueVehicles, uniqueYears } = useMemo(() => {
+                const vehicles = new Set();
+                const years = new Set();
+                data.forEach(item => {
+                    if (item['เบอร์รถ']) vehicles.add(item['เบอร์รถ']);
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
+                    if (date) years.add(date.getFullYear());
+                });
+                return {
+                    uniqueVehicles: Array.from(vehicles).sort(),
+                    uniqueYears: Array.from(years).sort((a, b) => b - a)
+                };
+            }, [data]);
+
+            const comparisonData = useMemo(() => {
+                if (!selectedVehicle) return null;
+
+                const vehicleData = data.filter(item => item['เบอร์รถ'] === selectedVehicle);
+
+                const currentMonthData = vehicleData.filter(item => {
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
+                    return date && date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+                });
+                const currentMonthTotal = currentMonthData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+
+                const prevMonthDate = new Date(selectedYear, selectedMonth, 1);
+                prevMonthDate.setMonth(prevMonthDate.getMonth() - 1);
+                const prevMonth = prevMonthDate.getMonth();
+                const prevYear = prevMonthDate.getFullYear();
+
+                const previousMonthData = vehicleData.filter(item => {
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
+                    return date && date.getFullYear() === prevYear && date.getMonth() === prevMonth;
+                });
+                const previousMonthTotal = previousMonthData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+                
+                const difference = currentMonthTotal - previousMonthTotal;
+
+                return {
+                    currentMonthData,
+                    previousMonthData,
+                    currentMonthTotal,
+                    previousMonthTotal,
+                    difference,
+                    prevMonth,
+                    prevYear
+                };
+            }, [data, selectedVehicle, selectedYear, selectedMonth]);
+
+            const RepairDetailTable = ({ title, items }) => (
+                <div>
+                    <h3 className="text-md font-semibold text-slate-700 mb-2">{title}</h3>
+                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-100">
+                                <tr>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-600">วันที่</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-600">รายการ</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-600">ประเภท</th>
+                                    <th className="px-4 py-2 text-right font-medium text-slate-600">ต้นทุนรวม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {items.length > 0 ? items.map((item, index) => (
+                                    <tr key={index} className="border-t">
+                                        <td className="px-4 py-2 text-slate-600 whitespace-nowrap">{formatDate(item['วันที่แจ้งซ่อม(APP)'])}</td>
+                                        <td className="px-4 py-2 text-slate-700">{item['รายการซ่อม']}</td>
+                                        <td className="px-4 py-2 text-slate-600">{item['ประเภท']}</td>
+                                        <td className="px-4 py-2 text-right font-semibold text-emerald-700">{formatPrice(calculateTotalCost(item))}</td>
+                                    </tr>
+                                )) : (
+                                    <tr>
+                                        <td colSpan="4" className="text-center py-4 text-slate-500">ไม่พบข้อมูล</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div>
+                    <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
+                        <select value={selectedVehicle} onChange={e => setSelectedVehicle(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="">-- เลือกเบอร์รถ --</option>
+                            {uniqueVehicles.map(v => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                        <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            {uniqueYears.map(y => <option key={y} value={y}>{y + 543}</option>)}
+                        </select>
+                        <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
+                        </select>
+                    </div>
+
+                    {!selectedVehicle ? (
+                        <div className="text-center py-12 text-gray-500 bg-white rounded-lg shadow">
+                            กรุณาเลือกเบอร์รถเพื่อดูการเปรียบเทียบ
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <SummaryCard 
+                                    title={`ยอดซ่อม ${getThaiMonthName(selectedMonth)} ${selectedYear + 543}`}
+                                    value={formatPrice(comparisonData.currentMonthTotal)}
+                                    unit="บาท"
+                                    icon={<Icons name="balance" />}
+                                    color={{ bg: 'bg-blue-100', icon: 'text-blue-600', border: 'border-blue-500' }}
+                                />
+                                <SummaryCard 
+                                    title={`ยอดซ่อม ${getThaiMonthName(comparisonData.prevMonth)} ${comparisonData.prevYear + 543}`}
+                                    value={formatPrice(comparisonData.previousMonthTotal)}
+                                    unit="บาท"
+                                    icon={<Icons name="balance" />}
+                                    color={{ bg: 'bg-gray-100', icon: 'text-gray-600', border: 'border-gray-400' }}
+                                />
+                                <SummaryCard 
+                                    title="ผลต่าง"
+                                    value={formatPrice(comparisonData.difference)}
+                                    unit="บาท"
+                                    icon={comparisonData.difference >= 0 ? <Icons name="up"/> : <Icons name="down"/>}
+                                    color={comparisonData.difference >= 0 ? 
+                                        { bg: 'bg-red-100', icon: 'text-red-600', border: 'border-red-500' } : 
+                                        { bg: 'bg-green-100', icon: 'text-green-600', border: 'border-green-500' }}
+                                />
+                            </div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <RepairDetailTable title={`รายการซ่อมเดือน ${getThaiMonthName(selectedMonth)}`} items={comparisonData.currentMonthData} />
+                                <RepairDetailTable title={`รายการซ่อมเดือน ${getThaiMonthName(comparisonData.prevMonth)}`} items={comparisonData.previousMonthData} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
 
         // ##################################################################
         // ### REPAIR APP MAIN COMPONENT (คอมโพเนนต์หลักของแอปแจ้งซ่อม) ###
         // ##################################################################
         const RepairApp = ({ data, isMobile }) => {
             const [activeTab, setActiveTab] = useState('all');
-            const tabConfig = [ { id: 'all', label: 'ข้อมูลทั้งหมด' }, { id: 'weekly', label: 'รายสัปดาห์' }, { id: 'type', label: 'สรุปประเภท' }, { id: 'vehicle', label: 'สถิติรถ' }];
+            const tabConfig = [ 
+                { id: 'all', label: 'ข้อมูลทั้งหมด' }, 
+                { id: 'weekly', label: 'รายสัปดาห์' }, 
+                { id: 'type', label: 'สรุปประเภท' }, 
+                { id: 'vehicle', label: 'สถิติรถ' },
+                { id: 'comparison', label: 'เปรียบเทียบรายคัน' }
+            ];
             const renderContent = () => {
                 if (!data || data.length === 0) return <div className="text-center py-8 text-gray-500">ไม่พบข้อมูลการแจ้งซ่อม</div>;
                 switch (activeTab) {
@@ -810,6 +960,7 @@
                     case 'weekly': return <WeeklyTab data={data} isMobile={isMobile} />;
                     case 'type': return <TypeTab data={data} isMobile={isMobile} />;
                     case 'vehicle': return <VehicleTab data={data} isMobile={isMobile} />;
+                    case 'comparison': return <ComparisonTab data={data} />;
                     default: return null;
                 }
             };

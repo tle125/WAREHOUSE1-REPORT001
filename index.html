@@ -4,7 +4,7 @@
 <link rel="icon" type="image/png" href="https://img.icons8.com/?size=64&id=xVnReHOxsQVt&format=png">
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>รายงานแจ้งซ่อม น้ำมัน ชาร์จไฟฟ้าEV</title>
+    <title>Dashboard รายงานภาพรวม</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -74,7 +74,7 @@
         .button-container {
           display: flex;
           background-color: rgb(27, 133, 219);
-          width: 280px;
+          width: 360px;
           height: 60px;
           align-items: center;
           justify-content: space-around;
@@ -207,7 +207,7 @@
             }
             .button-container {
                 width: 90%;
-                max-width: 300px;
+                max-width: 360px;
             }
         }
     </style>
@@ -286,7 +286,7 @@
             return number.toLocaleString('th-TH', { minimumFractionDigits: digits, maximumFractionDigits: digits });
         };
         const formatPrice = (price) => formatNumber(price, 2);
-        const getThaiMonthName = (monthIndex) => ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][monthIndex];
+        const getThaiMonthName = (monthIndex) => ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'][monthIndex];
         const calculateTotalSparePartsPrice = (priceString) => {
             if (!priceString) return 0;
             return String(priceString).split(/[,;|+]/).map(p => parseFloat(p.trim())).filter(p => !isNaN(p)).reduce((sum, current) => sum + current, 0);
@@ -939,7 +939,7 @@
                             {uniqueYears.map(y => <option key={y} value={y}>{y + 543}</option>)}
                         </select>
                         <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
-                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
+                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][i]}</option>)}
                         </select>
                     </div>
 
@@ -951,14 +951,14 @@
                         <div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <SummaryCard 
-                                    title={`ยอดซ่อม ${getThaiMonthName(selectedMonth)} ${selectedYear + 543}`}
+                                    title={`ยอดซ่อม ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][selectedMonth]} ${selectedYear + 543}`}
                                     value={formatPrice(comparisonData.currentMonthTotal)}
                                     unit="บาท"
                                     icon={<Icons name="balance" />}
                                     color={{ bg: 'bg-blue-100', icon: 'text-blue-600', border: 'border-blue-500' }}
                                 />
                                 <SummaryCard 
-                                    title={`ยอดซ่อม ${getThaiMonthName(comparisonData.prevMonth)} ${comparisonData.prevYear + 543}`}
+                                    title={`ยอดซ่อม ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][comparisonData.prevMonth]} ${comparisonData.prevYear + 543}`}
                                     value={formatPrice(comparisonData.previousMonthTotal)}
                                     unit="บาท"
                                     icon={<Icons name="balance" />}
@@ -975,8 +975,8 @@
                                 />
                             </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                <RepairDetailTable title={`รายการซ่อมเดือน ${getThaiMonthName(selectedMonth)}`} items={comparisonData.currentMonthData} />
-                                <RepairDetailTable title={`รายการซ่อมเดือน ${getThaiMonthName(comparisonData.prevMonth)}`} items={comparisonData.previousMonthData} />
+                                <RepairDetailTable title={`รายการซ่อมเดือน ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][selectedMonth]}`} items={comparisonData.currentMonthData} />
+                                <RepairDetailTable title={`รายการซ่อมเดือน ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][comparisonData.prevMonth]}`} items={comparisonData.previousMonthData} />
                             </div>
                         </div>
                     )}
@@ -1449,7 +1449,7 @@
                         </select>
                         <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md" disabled={selectedYear === 'all'}>
                             <option value="all">ทุกเดือน</option>
-                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
+                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][i]}</option>)}
                         </select>
                     </div>
 
@@ -1933,7 +1933,7 @@
                         </select>
                         <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md" disabled={selectedYear === 'all'}>
                             <option value="all">ทุกเดือน</option>
-                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
+                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][i]}</option>)}
                         </select>
                     </div>
 
@@ -1995,13 +1995,170 @@
             );
         };
         // ### EV CHARGING APP COMPONENTS (END) ###
+        
+        // ##################################################################
+        // ### ENERGY COMPARISON APP (START) ###
+        // ##################################################################
+        const EnergyComparisonApp = ({ fuelData, evData }) => {
+            const today = new Date();
+            const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+            const [selectedMonth, setSelectedMonth] = useState('all'); // 'all' for the whole year
+
+            const { uniqueYears } = useMemo(() => {
+                const years = new Set();
+                (fuelData?.supply || []).forEach(item => {
+                    const date = parseDate(item['วันที่']);
+                    if (date) years.add(date.getFullYear());
+                });
+                (evData || []).forEach(item => {
+                    const date = parseDate(item.date);
+                    if (date) years.add(date.getFullYear());
+                });
+                return { uniqueYears: Array.from(years).sort((a, b) => b - a) };
+            }, [fuelData, evData]);
+
+            const comparisonData = useMemo(() => {
+                const year = selectedYear;
+                const month = selectedMonth;
+
+                const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
+                const ev = evData || [];
+
+                const getFilteredCost = (data, dateField, costField) => {
+                    return data.filter(item => {
+                        const date = parseDate(item[dateField]);
+                        if (!date) return false;
+                        const yearMatch = date.getFullYear() === year;
+                        const monthMatch = month === 'all' || date.getMonth() === month;
+                        return yearMatch && monthMatch;
+                    }).reduce((sum, item) => sum + (Number(item[costField]) || 0), 0);
+                };
+
+                const totalFuelCost = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน');
+                const totalEvCost = getFilteredCost(ev, 'date', 'electricityCost');
+                const totalSavings = totalFuelCost - totalEvCost;
+
+                const daysInPeriod = month === 'all' 
+                    ? (new Date(year, 11, 31) - new Date(year, 0, 1)) / (1000 * 60 * 60 * 24) + 1
+                    : new Date(year, month + 1, 0).getDate();
+                
+                const avgDailySavings = totalSavings / daysInPeriod;
+
+                const monthlyChartData = Array.from({ length: 12 }).map((_, i) => {
+                    const monthlyFuel = getFilteredCost(fuel.filter(item => parseDate(item['วันที่'])?.getMonth() === i), 'วันที่', 'ราคาน้ำมัน');
+                    const monthlyEv = getFilteredCost(ev.filter(item => parseDate(item.date)?.getMonth() === i), 'date', 'electricityCost');
+                    return {
+                        label: getThaiMonthName(i),
+                        fuel: monthlyFuel,
+                        ev: monthlyEv,
+                    };
+                });
+                
+                const monthlyBarChartData = monthlyChartData.flatMap(m => [
+                    { label: m.label, value: m.fuel, displayValue: formatPrice(m.fuel), type: 'น้ำมัน' },
+                    { label: m.label, value: m.ev, displayValue: formatPrice(m.ev), type: 'EV' }
+                ]);
+
+                return {
+                    totalFuelCost,
+                    totalEvCost,
+                    totalSavings,
+                    avgDailySavings,
+                    monthlyBarChartData
+                };
+
+            }, [fuelData, evData, selectedYear, selectedMonth]);
+
+            const MonthlyComparisonBarChart = ({ data }) => {
+                const months = Array.from(new Set(data.map(d => d.label)));
+                const maxValue = Math.max(...data.map(d => d.value), 0);
+
+                const BarRow = ({ label, value, colorClass, textColorClass }) => {
+                    const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+                    const showTextInside = percentage > 15; // Threshold to show text inside
+
+                    return (
+                        <div className="flex items-center space-x-2">
+                            <div className={`w-16 text-xs text-right ${textColorClass}`}>{label}:</div>
+                            <div className="flex-1 flex items-center">
+                                <div className="flex-1 bg-gray-200 rounded-full h-5">
+                                    <div 
+                                        className={`${colorClass} h-5 rounded-full text-white text-xs flex items-center justify-end pr-2`} 
+                                        style={{ width: `${percentage}%` }}
+                                    >
+                                        {showTextInside && formatPrice(value)}
+                                    </div>
+                                </div>
+                                {!showTextInside && <span className="ml-2 text-xs font-medium text-slate-700">{formatPrice(value)}</span>}
+                            </div>
+                        </div>
+                    );
+                };
+
+                return (
+                    <div className="bg-white rounded-lg shadow-md p-4">
+                        <h3 className="font-semibold text-lg mb-4 text-slate-800">เปรียบเทียบค่าใช้จ่ายรายเดือน</h3>
+                        <div className="space-y-4">
+                            {months.map(month => {
+                                const fuelItem = data.find(d => d.label === month && d.type === 'น้ำมัน');
+                                const evItem = data.find(d => d.label === month && d.type === 'EV');
+
+                                return (
+                                    <div key={month}>
+                                        <div className="font-medium text-sm text-slate-600 mb-2">{month}</div>
+                                        <div className="space-y-1">
+                                            <BarRow 
+                                                label="น้ำมัน" 
+                                                value={fuelItem.value} 
+                                                colorClass="bg-blue-500"
+                                                textColorClass="text-blue-700"
+                                            />
+                                            <BarRow 
+                                                label="EV" 
+                                                value={evItem.value} 
+                                                colorClass="bg-green-500"
+                                                textColorClass="text-green-700"
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายพลังงาน</h2>
+                    <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
+                        <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            {uniqueYears.map(y => <option key={y} value={y}>{y + 543}</option>)}
+                        </select>
+                        <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            <option value="all">ทุกเดือน</option>
+                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][i]}</option>)}
+                        </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                        <SummaryCard title="ค่าใช้จ่ายน้ำมันรวม" value={formatPrice(comparisonData.totalFuelCost)} unit="บาท" icon={<img src="https://img.icons8.com/?size=80&id=93a3SInn9e4L&format=png" className="w-8 h-8"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
+                        <SummaryCard title="ค่าใช้จ่าย EV รวม" value={formatPrice(comparisonData.totalEvCost)} unit="บาท" icon={<Icons name="bolt"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
+                        <SummaryCard title="ประหยัดได้ทั้งหมด" value={formatPrice(comparisonData.totalSavings)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-yellow-100', border:'border-yellow-500'}}/>
+                        <SummaryCard title="ประหยัดต่อวัน (เฉลี่ย)" value={formatPrice(comparisonData.avgDailySavings)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-purple-100', border:'border-purple-500'}}/>
+                    </div>
+                    
+                    <MonthlyComparisonBarChart data={comparisonData.monthlyBarChartData} />
+                </div>
+            );
+        };
 
 
         // ##################################################################
         // ### MAIN APP COMPONENT (คอมโพเนนต์หลัก) ###
         // ##################################################################
         const App = () => {
-            const [activeApp, setActiveApp] = useState('repair'); // 'repair', 'fuel', or 'ev'
+            const [activeApp, setActiveApp] = useState('repair'); // 'repair', 'fuel', 'ev', 'energy'
             const [data, setData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -2073,6 +2230,8 @@
                         return <FuelApp data={data.fuelData} />;
                     case 'ev':
                         return <EVChargingApp data={data.evData} />;
+                    case 'energy':
+                        return <EnergyComparisonApp fuelData={data.fuelData} evData={data.evData} />;
                     default:
                         return null;
                 }
@@ -2117,6 +2276,10 @@
                                     <Icons name="bolt" className="w-6 h-6" />
                                     <span className="nav-text">ชาร์จไฟEV</span>
                                 </button>
+                                <button title="เปรียบเทียบพลังงาน" className={`nav-button ${activeApp === 'energy' ? 'active' : ''}`} onClick={() => setActiveApp('energy')}>
+                                    <Icons name="balance" className="w-6 h-6" />
+                                    <span className="nav-text">เปรียบเทียบ</span>
+                                </button>
                             </div>
                         </nav>
                     </header>
@@ -2133,4 +2296,3 @@
     </script>
 </body>
 </html>
-

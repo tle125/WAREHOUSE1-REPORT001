@@ -425,7 +425,7 @@
             );
         };
         const PaginatedDataTable = ({ title, data, columns }) => {
-            const ITEMS_PER_PAGE = 20;
+            const ITEMS_PER_PAGE = 10;
             const [currentPage, setCurrentPage] = useState(1);
             useEffect(() => { setCurrentPage(1); }, [data]);
             const totalPages = Math.ceil(data.length / ITEMS_PER_PAGE);
@@ -443,10 +443,10 @@
                             </thead>
                             <tbody>
                                 {currentData.map((row, index) => (
-                                    <tr key={index} className="bg-white border-b hover:bg-gray-50">
+                                    <tr key={startIndex + index} className="bg-white border-b hover:bg-gray-50">
                                         {columns.map(col => (
                                             <td key={col.key} className="px-6 py-4 whitespace-nowrap">
-                                                {col.render ? col.render(row[col.key]) : row[col.key]}
+                                                {col.render ? col.render(row[col.key], row, startIndex + index) : row[col.key]}
                                             </td>
                                         ))}
                                     </tr>
@@ -558,7 +558,47 @@
             const groupedData = useMemo(() => Object.entries(groupDataByMonth(filteredData)).sort(([keyA], [keyB]) => new Date(keyB.split('-')[0], keyB.split('-')[1]) - new Date(keyA.split('-')[0], keyA.split('-')[1])), [filteredData]);
             const toggleMonth = (monthKey) => setExpandedMonths(prev => { const newSet = new Set(prev); if (newSet.has(monthKey)) newSet.delete(monthKey); else newSet.add(monthKey); return newSet; });
             const totalCost = useMemo(() => filteredData.reduce((sum, item) => sum + calculateTotalCost(item), 0), [filteredData]);
-            return (<div><div className="mb-4 sm:mb-6"><div className="flex flex-col sm:flex-row gap-2 sm:gap-4"><input type="text" placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto" /><select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"><option value="">ทุกประเภท</option>{uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}</select><select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"><option value="">ทุกปี</option>{uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}</select></div></div><div id="monthlyDataContainer">{groupedData.length > 0 ? groupedData.map(([key, group]) => (<MonthGroupSection key={key} group={group} isMobile={isMobile} isExpanded={expandedMonths.has(key)} onToggle={() => toggleMonth(key)} />)) : <div className="text-center py-8 text-gray-500">ไม่พบข้อมูล</div>}</div><div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm sm:text-base"><div><span className="font-semibold">{filteredData.length}</span> รายการ</div><div>ราคารวม: <span className="font-semibold">{formatPrice(totalCost)}</span> บาท</div></div></div>);
+
+            const searchColumns = [
+                { key: 'ลำดับที่', label: 'ลำดับที่', render: (val, row, index) => index + 1 },
+                { key: 'เบอร์รถ', label: 'เบอร์รถ' },
+                { key: 'รายการซ่อม', label: 'รายการซ่อม' },
+                { key: 'ประเภท', label: 'ประเภท' },
+                { key: 'วันที่แจ้งซ่อม(APP)', label: 'วันที่แจ้งซ่อม', render: (val) => formatDate(val) },
+                { key: 'ซ่อมเสร็จ(APP)', label: 'ซ่อมเสร็จ', render: (val) => formatDate(val) },
+                { key: 'ราคา', label: 'ค่าซ่อม', render: (val) => formatPrice(val) },
+                { key: 'ราคาอะไหล่', label: 'ค่าอะไหล่', render: (val) => formatPrice(calculateTotalSparePartsPrice(val)) },
+                { key: 'total', label: 'รวม', render: (val, row) => formatPrice(calculateTotalCost(row)) },
+            ];
+
+            return (
+                <div>
+                    <div className="mb-4 sm:mb-6">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                            <input type="text" placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto" />
+                            <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"><option value="">ทุกประเภท</option>{uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}</select>
+                            <select value={filterYear} onChange={e => setFilterYear(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"><option value="">ทุกปี</option>{uniqueYears.map(y => <option key={y} value={y}>{y}</option>)}</select>
+                        </div>
+                    </div>
+                    
+                    {searchTerm ? (
+                        <PaginatedDataTable
+                            title={`ผลการค้นหาสำหรับ "${searchTerm}"`}
+                            data={filteredData}
+                            columns={searchColumns}
+                        />
+                    ) : (
+                        <div id="monthlyDataContainer">
+                            {groupedData.length > 0 ? groupedData.map(([key, group]) => (<MonthGroupSection key={key} group={group} isMobile={isMobile} isExpanded={expandedMonths.has(key)} onToggle={() => toggleMonth(key)} />)) : <div className="text-center py-8 text-gray-500">ไม่พบข้อมูล</div>}
+                        </div>
+                    )}
+
+                    <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-sm sm:text-base">
+                        <div><span className="font-semibold">{filteredData.length}</span> รายการ</div>
+                        <div>ราคารวม: <span className="font-semibold">{formatPrice(totalCost)}</span> บาท</div>
+                    </div>
+                </div>
+            );
         };
         const WeeklyTab = ({ data, isMobile }) => {
             const today = new Date();

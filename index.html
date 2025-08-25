@@ -2094,33 +2094,27 @@
                         ev: monthlyEv,
                     };
                 });
-                
-                const monthlyBarChartData = monthlyChartData.flatMap(m => [
-                    { label: m.label, value: m.fuel, displayValue: formatPrice(m.fuel), type: 'น้ำมัน' },
-                    { label: m.label, value: m.ev, displayValue: formatPrice(m.ev), type: 'EV' }
-                ]);
 
                 return {
                     totalFuelCost,
                     totalEvCost,
                     totalSavings,
                     avgDailySavings,
-                    monthlyBarChartData
+                    monthlyChartData
                 };
 
             }, [fuelData, evData, selectedYear, selectedMonth]);
 
             const MonthlyComparisonBarChart = ({ data }) => {
-                const months = Array.from(new Set(data.map(d => d.label)));
-                const maxValue = Math.max(...data.map(d => d.value), 0);
+                const maxValue = Math.max(...data.flatMap(d => [d.fuel, d.ev]), 1);
 
                 const BarRow = ({ label, value, colorClass, textColorClass }) => {
-                    const percentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
-                    const showTextInside = percentage > 15; // Threshold to show text inside
+                    const percentage = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
+                    const showTextInside = percentage > 20;
 
                     return (
                         <div className="flex items-center space-x-2">
-                            <div className={`w-16 text-xs text-right ${textColorClass}`}>{label}:</div>
+                            <div className={`w-16 text-xs text-right font-medium ${textColorClass}`}>{label}:</div>
                             <div className="flex-1 flex items-center">
                                 <div className="flex-1 bg-gray-200 rounded-full h-5">
                                     <div 
@@ -2140,25 +2134,30 @@
                     <div className="bg-white rounded-lg shadow-md p-4">
                         <h3 className="font-semibold text-lg mb-4 text-slate-800">เปรียบเทียบค่าใช้จ่ายรายเดือน</h3>
                         <div className="space-y-4">
-                            {months.map(month => {
-                                const fuelItem = data.find(d => d.label === month && d.type === 'น้ำมัน');
-                                const evItem = data.find(d => d.label === month && d.type === 'EV');
-
+                            {data.map(monthData => {
+                                const savings = monthData.fuel - monthData.ev;
+                                const isSaving = savings >= 0;
                                 return (
-                                    <div key={month}>
-                                        <div className="font-medium text-sm text-slate-600 mb-2">{month}</div>
+                                    <div key={monthData.label}>
+                                        <div className="font-medium text-sm text-slate-600 mb-2">{monthData.label}</div>
                                         <div className="space-y-1">
                                             <BarRow 
                                                 label="น้ำมัน" 
-                                                value={fuelItem.value} 
+                                                value={monthData.fuel} 
                                                 colorClass="bg-blue-500"
                                                 textColorClass="text-blue-700"
                                             />
                                             <BarRow 
                                                 label="EV" 
-                                                value={evItem.value} 
+                                                value={monthData.ev} 
                                                 colorClass="bg-green-500"
                                                 textColorClass="text-green-700"
+                                            />
+                                            <BarRow 
+                                                label={isSaving ? "ประหยัด" : "เกิน"}
+                                                value={savings} 
+                                                colorClass={isSaving ? "bg-amber-500" : "bg-red-500"}
+                                                textColorClass={isSaving ? "text-amber-700" : "text-red-700"}
                                             />
                                         </div>
                                     </div>
@@ -2189,7 +2188,7 @@
                         <SummaryCard title="ประหยัดต่อวัน (เฉลี่ย)" value={formatPrice(comparisonData.avgDailySavings)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-purple-100', border:'border-purple-500'}}/>
                     </div>
                     
-                    <MonthlyComparisonBarChart data={comparisonData.monthlyBarChartData} />
+                    <MonthlyComparisonBarChart data={comparisonData.monthlyChartData} />
                 </div>
             );
         };
@@ -2492,4 +2491,4 @@
         root.render(<React.StrictMode><App /></React.StrictMode>);
     </script>
 </body>
-</html>
+</ht

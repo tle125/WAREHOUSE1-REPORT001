@@ -2206,29 +2206,42 @@
                 const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
                 
                 const getMonthlyAverageCost = (data, dateField, costField, isBefore) => {
+                    const today = new Date();
+                    const currentMonth = today.getMonth();
+                    const currentYear = today.getFullYear();
+
                     const filteredData = data.filter(item => {
-                        const date = parseDate(item[dateField]);
-                        return date && (isBefore ? date < EV_START_DATE : date >= EV_START_DATE);
+                        const d = parseDate(item[dateField]);
+                        if (!d) return false;
+
+                        // Condition 1: Check if the date is before or after the EV start date
+                        const isWithinEvPeriod = isBefore ? d < EV_START_DATE : d >= EV_START_DATE;
+                        
+                        // Condition 2: Check if the date is before the current month
+                        const isBeforeCurrentMonth = d.getFullYear() < currentYear || (d.getFullYear() === currentYear && d.getMonth() < currentMonth);
+
+                        return isWithinEvPeriod && isBeforeCurrentMonth;
                     });
+
                     if (filteredData.length === 0) return 0;
-                    
+
                     const monthlyTotals = {};
-                    let monthCount = 0;
+                    
                     filteredData.forEach(item => {
-                        const date = parseDate(item[dateField]);
-                        if(date) {
-                            const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
-                            if(!monthlyTotals[monthKey]) {
+                        const d = parseDate(item[dateField]);
+                        if (d) {
+                            const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+                            if (!monthlyTotals[monthKey]) {
                                 monthlyTotals[monthKey] = 0;
-                                monthCount++;
-                            };
-                            monthlyTotals[monthKey] += Number(item[costField]);
+                            }
+                            monthlyTotals[monthKey] += Number(item[costField]) || 0;
                         }
                     });
                     
-                    if (monthCount === 0) return 0;
-                    const total = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0);
-                    return total / monthCount;
+                    const totalCost = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0);
+                    const monthCount = Object.keys(monthlyTotals).length;
+
+                    return monthCount > 0 ? totalCost / monthCount : 0;
                 };
 
                 const avgFuelCostBefore = getMonthlyAverageCost(fuel, 'วันที่', 'ราคาน้ำมัน', true);

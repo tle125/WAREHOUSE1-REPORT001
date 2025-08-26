@@ -1074,6 +1074,106 @@
         // ##################################################################
         // ### FUEL APP COMPONENTS (START) ###
         // ##################################################################
+        const FuelLast7DaysTab = ({ fuelOutData, fuelInData }) => {
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
+
+            const filterAndSortData = (data, type) => 
+                (data || [])
+                .filter(item => {
+                    const date = parseDate(item['วันที่']);
+                    return date && date >= sevenDaysAgo && date <= today;
+                })
+                .map(item => ({ ...item, ประเภท: type }))
+                .sort((a, b) => parseDate(b['วันที่']) - parseDate(a['วันที่']));
+
+            const filteredOut = filterAndSortData(fuelOutData, 'เบิกออก');
+            const filteredIn = filterAndSortData(fuelInData, 'รับเข้า');
+            
+            const totalOutCost = filteredOut.reduce((sum, item) => sum + (parseFloat(item['ราคาน้ำมัน']) || 0), 0);
+            const totalInCost = filteredIn.reduce((sum, item) => sum + (parseFloat(item['ราคาน้ำมัน']) || 0), 0);
+
+            const vehicleStats = {};
+            filteredOut.forEach(item => {
+                const plate = item['เบอร์รถ'] || 'ไม่ระบุ';
+                const cost = parseFloat(item['ราคาน้ำมัน']) || 0;
+                if (!vehicleStats[plate]) vehicleStats[plate] = { total: 0, count: 0 };
+                vehicleStats[plate].total += cost;
+                vehicleStats[plate].count++;
+            });
+
+            const chartData = Object.entries(vehicleStats).map(([plate, stats]) => ({
+                label: plate,
+                value: stats.total,
+                displayValue: formatPrice(stats.total)
+            })).sort((a, b) => b.value - a.value);
+
+            const renderTableRows = (data) => {
+                return data.map((row, idx) => (
+                    <tr key={`${row['ประเภท']}-${idx}`} className="border-t">
+                        <td className="px-3 py-2 text-slate-600">{formatDate(row['วันที่'])}</td>
+                        <td className="px-3 py-2 text-slate-700">{row['เบอร์รถ'] || '-'}</td>
+                        <td className="px-3 py-2 text-right text-slate-600">
+                            {row['ประเภท'] === 'เบิกออก'
+                                ? formatNumber(row['จ่ายออก /ลิตร'])
+                                : formatNumber(row['รับเข้า'])}
+                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-emerald-600">
+                            {formatPrice(row['ราคาน้ำมัน'])}
+                        </td>
+                    </tr>
+                ));
+            };
+
+            return (
+                <div>
+                    <h2 className="text-lg font-semibold mb-4 text-slate-800">
+                        รายการน้ำมัน 7 วันล่าสุด
+                    </h2>
+
+                    {/* Table */}
+                    <div className="overflow-x-auto bg-white rounded-lg shadow-md p-4 mb-6">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-100">
+                                <tr>
+                                    <th className="px-3 py-2 text-left font-medium text-slate-600">วันที่</th>
+                                    <th className="px-3 py-2 text-left font-medium text-slate-600">ทะเบียนรถ</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ปริมาณ (ลิตร)</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ราคา (บาท)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr className="bg-red-50 font-semibold text-red-800">
+                                    <td colSpan="4" className="px-3 py-2">เบิกออก</td>
+                                </tr>
+                                {filteredOut.length > 0 ? renderTableRows(filteredOut) : <tr><td colSpan="4" className="text-center py-3 text-slate-500">ไม่มีรายการเบิกออก</td></tr>}
+                                <tr className="bg-red-100 font-bold text-red-900 border-t-2 border-red-200">
+                                    <td colSpan="3" className="px-3 py-2 text-right">รวมเบิกออก</td>
+                                    <td className="px-3 py-2 text-right">{formatPrice(totalOutCost)}</td>
+                                </tr>
+
+                                <tr className="bg-green-50 font-semibold text-green-800">
+                                    <td colSpan="4" className="px-3 py-2">รับเข้า</td>
+                                </tr>
+                                {filteredIn.length > 0 ? renderTableRows(filteredIn) : <tr><td colSpan="4" className="text-center py-3 text-slate-500">ไม่มีรายการรับเข้า</td></tr>}
+                                <tr className="bg-green-100 font-bold text-green-900 border-t-2 border-green-200">
+                                    <td colSpan="3" className="px-3 py-2 text-right">รวมรับเข้า</td>
+                                    <td className="px-3 py-2 text-right">{formatPrice(totalInCost)}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Chart */}
+                    <BarChart
+                        data={chartData}
+                        color="bg-indigo-500"
+                        title="มูลค่าน้ำมันตามทะเบียนรถ (เบิกออก - 7 วันล่าสุด)"
+                    />
+                </div>
+            );
+        };
         const FuelCharts = ({ supplyData }) => {
             const { dieselPriceChart, dieselLiterChart, benzenePriceChart, benzeneLiterChart } = useMemo(() => {
                 if (!supplyData || supplyData.length === 0) {
@@ -1329,7 +1429,7 @@
         };
 
         const FuelApp = ({ data }) => {
-            const [activeTab, setActiveTab] = useState('supply');
+            const [activeTab, setActiveTab] = useState('last7days');
             const [selectedYear, setSelectedYear] = useState('all');
             const [selectedMonth, setSelectedMonth] = useState('all');
 
@@ -1529,14 +1629,18 @@
                     </div>
 
                     <div className="flex border-b border-gray-200 mt-8 mb-4 sm:mb-6 overflow-x-auto">
-                        <button onClick={() => setActiveTab('supply')} className={`py-2 px-3 sm:px-4 font-medium whitespace-nowrap text-sm sm:text-base border-b-2 ${activeTab === 'supply' ? 'tab-active' : 'tab-inactive'}`}>
+                        <button onClick={() => setActiveTab('last7days')} className={`py-2 px-3 sm:px-4 font-medium whitespace-nowrap text-sm sm:text-base border-b-2 ${activeTab === 'last7days' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
+                            7 วันล่าสุด
+                        </button>
+                        <button onClick={() => setActiveTab('supply')} className={`py-2 px-3 sm:px-4 font-medium whitespace-nowrap text-sm sm:text-base border-b-2 ${activeTab === 'supply' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                             ข้อมูลการจ่ายน้ำมัน
                         </button>
-                        <button onClick={() => setActiveTab('receiving')} className={`py-2 px-3 sm:px-4 font-medium whitespace-nowrap text-sm sm:text-base border-b-2 ${activeTab === 'receiving' ? 'tab-active' : 'tab-inactive'}`}>
+                        <button onClick={() => setActiveTab('receiving')} className={`py-2 px-3 sm:px-4 font-medium whitespace-nowrap text-sm sm:text-base border-b-2 ${activeTab === 'receiving' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>
                            ข้อมูลการรับน้ำมัน
                         </button>
                     </div>
                     
+                    {activeTab === 'last7days' && <FuelLast7DaysTab fuelOutData={data.supply} fuelInData={data.receiving} />}
                     {activeTab === 'supply' && <FuelSupplyTab data={filteredData.supply} />}
                     {activeTab === 'receiving' && <FuelReceivingTab data={filteredData.receiving} />}
                 </div>
@@ -2491,4 +2595,4 @@
         root.render(<React.StrictMode><App /></React.StrictMode>);
     </script>
 </body>
-</ht
+</html>

@@ -221,6 +221,9 @@
     }
     </script>
     
+    <!-- Lottie Animation Player -->
+    <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js" type="module"></script>
+
     <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -2616,7 +2619,7 @@
                                     <span className="nav-text">เปรียบเทียบ</span>
                                 </button>
                                 <button title="ผลกระทบ EV" className={`nav-button ${activeApp === 'ev_impact' ? 'active' : ''}`} onClick={() => setActiveApp('ev_impact')}>
-                                    <Icons name="impact" className="w-6 h-6" />
+                                     <dotlottie-wc src="https://lottie.host/ddc40909-2718-4242-927f-e3fda3ac77ca/L8DWV25LrA.lottie" style={{width: '24px', height: '24px'}} speed="1" autoplay loop></dotlottie-wc>
                                     <span className="nav-text">ผลกระทบ EV</span>
                                 </button>
                             </div>

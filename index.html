@@ -74,7 +74,7 @@
         .button-container {
           display: flex;
           background-color: rgb(27, 133, 219);
-          width: 440px;
+          width: 540px; /* Increased width for new button */
           height: 60px;
           align-items: center;
           justify-content: space-around;
@@ -206,8 +206,8 @@
                 border-top: 1px solid #e2e8f0;
             }
             .button-container {
-                width: 90%;
-                max-width: 360px;
+                width: 100%;
+                max-width: 540px;
             }
         }
     </style>
@@ -384,7 +384,8 @@
                 up: <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3l7.5 7.5" />,
                 down: <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21l-7.5-7.5" />,
                 balance: <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />,
-                impact: <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1-8.414 1.414M2.25 18 18 2.25M12 21V9M15.75 21v-5.25M8.25 21v-5.25" />
+                impact: <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1-8.414 1.414M2.25 18 18 2.25M12 21V9M15.75 21v-5.25M8.25 21v-5.25" />,
+                calculator: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 3h.008v.008H8.25v-.008zm0 3h.008v.008H8.25v-.008zm3-6h.008v.008H11.25v-.008zm0 3h.008v.008H11.25v-.008zm0 3h.008v.008H11.25v-.008zm3-6h.008v.008H14.25v-.008zm0 3h.008v.008H14.25v-.008zM4.5 3.75v16.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V3.75m-15 0h15M4.5 3.75a2.25 2.25 0 012.25-2.25h10.5a2.25 2.25 0 012.25 2.25" />
             };
             return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>{iconPaths[name]}</svg>;
         };
@@ -2206,12 +2207,11 @@
 
             const comparisonData = useMemo(() => {
                 const year = selectedYear;
-                const month = selectedMonth;
-
+                
                 const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
                 const ev = evData || [];
 
-                const getFilteredCost = (data, dateField, costField) => {
+                const getFilteredCost = (data, dateField, costField, month) => {
                     return data.filter(item => {
                         const date = parseDate(item[dateField]);
                         if (!date) return false;
@@ -2221,25 +2221,32 @@
                     }).reduce((sum, item) => sum + (Number(item[costField]) || 0), 0);
                 };
 
-                const totalFuelCost = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน');
-                const totalEvCost = getFilteredCost(ev, 'date', 'electricityCost');
+                const totalFuelCost = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน', selectedMonth);
+                const totalEvCost = getFilteredCost(ev, 'date', 'electricityCost', selectedMonth);
                 const totalSavings = totalFuelCost - totalEvCost;
 
-                const daysInPeriod = month === 'all' 
+                const daysInPeriod = selectedMonth === 'all' 
                     ? (new Date(year, 11, 31) - new Date(year, 0, 1)) / (1000 * 60 * 60 * 24) + 1
-                    : new Date(year, month + 1, 0).getDate();
+                    : new Date(year, selectedMonth + 1, 0).getDate();
                 
                 const avgDailySavings = totalSavings / daysInPeriod;
 
-                const monthlyChartData = Array.from({ length: 12 }).map((_, i) => {
-                    const monthlyFuel = getFilteredCost(fuel.filter(item => parseDate(item['วันที่'])?.getMonth() === i), 'วันที่', 'ราคาน้ำมัน');
-                    const monthlyEv = getFilteredCost(ev.filter(item => parseDate(item.date)?.getMonth() === i), 'date', 'electricityCost');
+                const monthlyData = Array.from({ length: 12 }).map((_, i) => {
+                    const monthlyFuel = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน', i);
+                    const monthlyEv = getFilteredCost(ev, 'date', 'electricityCost', i);
                     return {
                         label: getThaiMonthName(i),
                         fuel: monthlyFuel,
                         ev: monthlyEv,
                     };
                 });
+                
+                const monthlyChartData = monthlyData.map((month, i) => {
+                    const prevMonthFuel = i > 0 ? monthlyData[i-1].fuel : 0;
+                    const fuelSavings = prevMonthFuel - month.fuel;
+                    return {...month, fuelSavings };
+                });
+
 
                 return {
                     totalFuelCost,
@@ -2252,7 +2259,7 @@
             }, [fuelData, evData, selectedYear, selectedMonth]);
 
             const MonthlyComparisonBarChart = ({ data }) => {
-                const maxValue = Math.max(...data.flatMap(d => [d.fuel, d.ev]), 1);
+                const maxValue = Math.max(...data.flatMap(d => [d.fuel, d.ev, d.fuelSavings]), 1);
 
                 const BarRow = ({ label, value, colorClass, textColorClass }) => {
                     const percentage = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
@@ -2260,7 +2267,7 @@
 
                     return (
                         <div className="flex items-center space-x-2">
-                            <div className={`w-16 text-xs text-right font-medium ${textColorClass}`}>{label}:</div>
+                            <div className={`w-24 text-xs text-right font-medium ${textColorClass}`}>{label}:</div>
                             <div className="flex-1 flex items-center">
                                 <div className="flex-1 bg-gray-200 rounded-full h-5">
                                     <div 
@@ -2281,27 +2288,26 @@
                         <h3 className="font-semibold text-lg mb-4 text-slate-800">เปรียบเทียบค่าใช้จ่ายรายเดือน</h3>
                         <div className="space-y-4">
                             {data.map(monthData => {
-                                const savings = monthData.fuel - monthData.ev;
-                                const isSaving = savings >= 0;
+                                const isSaving = monthData.fuelSavings >= 0;
                                 return (
                                     <div key={monthData.label}>
                                         <div className="font-medium text-sm text-slate-600 mb-2">{monthData.label}</div>
                                         <div className="space-y-1">
                                             <BarRow 
-                                                label="น้ำมัน" 
+                                                label="ค่าน้ำมัน" 
                                                 value={monthData.fuel} 
                                                 colorClass="bg-blue-500"
                                                 textColorClass="text-blue-700"
                                             />
                                             <BarRow 
-                                                label="EV" 
+                                                label="ค่าไฟ EV" 
                                                 value={monthData.ev} 
                                                 colorClass="bg-green-500"
                                                 textColorClass="text-green-700"
                                             />
                                             <BarRow 
-                                                label={isSaving ? "ประหยัด" : "เกิน"}
-                                                value={savings} 
+                                                label={isSaving ? "ประหยัดน้ำมัน" : "น้ำมันใช้เพิ่ม"}
+                                                value={monthData.fuelSavings} 
                                                 colorClass={isSaving ? "bg-amber-500" : "bg-red-500"}
                                                 textColorClass={isSaving ? "text-amber-700" : "text-red-700"}
                                             />
@@ -2477,7 +2483,7 @@
 
             return (
                  <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">ผลกระทบจากการใช้รถ EV ต่อค่าใช้จ่ายน้ำมัน</h2>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">ผลการประหยัดจากการใช้รถ EV ต่อค่าใช้จ่ายน้ำมัน</h2>
                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
                         <SummaryCard title="ค่าใช้จ่ายน้ำมันเฉลี่ย (ก่อนมี EV)" value={formatPrice(impactData.avgBefore)} unit="บาท/เดือน" icon={<Icons name="balance"/>} color={{bg:'bg-gray-100', border:'border-gray-400'}}/>
                         <SummaryCard title="ค่าพลังงานรวมเฉลี่ย (หลังมี EV)" value={formatPrice(impactData.avgAfter)} unit="บาท/เดือน" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
@@ -2488,13 +2494,146 @@
                 </div>
             );
         };
+        
+        // ##################################################################
+        // ### BREAKEVEN APP (START) ###
+        // ##################################################################
+        const BreakevenApp = ({ repairData, fuelData, evData }) => {
+            // --- CONFIGURATIONS ---
+            const EV_CONFIG = {
+              'TT-19': { name: 'TT-19', price: 533930 },
+              'TT-20': { name: 'TT-20', price: 1660000 },
+              'TT-21': { name: 'TT-21', price: 1660000 },
+              'TT-22': { name: 'TT-22', price: 1660000 },
+              'TT-23': { name: 'TT-23', price: 1660000 },
+            };
+            const ICE_VEHICLES_FOR_COMPARISON = ['TT-02', 'TT-03', 'TT-06', 'TT-07', 'TT-08', 'TT-09', 'TT-10', 'TT-11', 'TT-12', 'TT-13', 'TT-15', 'TT-16', 'TT-17', 'TT-18'];
+
+            // --- CALCULATIONS ---
+            const iceBenchmarkCosts = useMemo(() => {
+                if (!repairData || !fuelData?.supply) return { totalRepairCost: 0, totalFuelCost: 0, avgAnnualCostPerVehicle: 0, durationYears: 0 };
+
+                const relevantRepairData = repairData.filter(item => ICE_VEHICLES_FOR_COMPARISON.includes(item['เบอร์รถ']));
+                const relevantFuelData = fuelData.supply.filter(item => ICE_VEHICLES_FOR_COMPARISON.includes(item['เบอร์รถ']));
+
+                const allData = [...relevantRepairData.map(i => i['วันที่แจ้งซ่อม(APP)']), ...relevantFuelData.map(i => i['วันที่'])];
+                const validDates = allData.map(d => parseDate(d)).filter(Boolean);
+                
+                if (validDates.length < 2) return { totalRepairCost: 0, totalFuelCost: 0, avgAnnualCostPerVehicle: 0, durationYears: 0 };
+
+                const minDate = new Date(Math.min.apply(null, validDates));
+                const maxDate = new Date(Math.max.apply(null, validDates));
+                const durationYears = (maxDate - minDate) / (1000 * 60 * 60 * 24 * 365.25);
+
+                if (durationYears <= 0) return { totalRepairCost: 0, totalFuelCost: 0, avgAnnualCostPerVehicle: 0, durationYears: 0 };
+
+                const totalRepairCost = relevantRepairData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+                const totalFuelCost = relevantFuelData.reduce((sum, item) => sum + (Number(item['ราคาน้ำมัน']) || 0), 0);
+                
+                const totalFleetCost = totalRepairCost + totalFuelCost;
+                const avgAnnualCostForFleet = totalFleetCost / durationYears;
+                const avgAnnualCostPerVehicle = avgAnnualCostForFleet / ICE_VEHICLES_FOR_COMPARISON.length;
+
+                return { totalRepairCost, totalFuelCost, avgAnnualCostPerVehicle, durationYears };
+            }, [repairData, fuelData]);
+
+            const evAnnualCosts = useMemo(() => {
+                if (!repairData || !evData) return {};
+                const EV_START_DATE = new Date('2025-08-01');
+                const today = new Date(); // Use current date for calculation
+                
+                // Ensure we don't divide by zero or a tiny number if the app is run on the start date
+                const timeDiff = today - EV_START_DATE;
+                if (timeDiff <= 0) return {};
+                
+                const durationYears = timeDiff / (1000 * 60 * 60 * 24 * 365.25);
+
+                const costs = {};
+                Object.keys(EV_CONFIG).forEach(evPlate => {
+                    const evRepairData = repairData.filter(item => item['เบอร์รถ'] === evPlate && parseDate(item['วันที่แจ้งซ่อม(APP)']) >= EV_START_DATE);
+                    const totalRepairCost = evRepairData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+                    
+                    const evChargeData = evData.filter(item => item.licensePlate === evPlate);
+                    const totalChargeCost = evChargeData.reduce((sum, item) => sum + (Number(item.electricityCost) || 0), 0);
+
+                    const totalCost = totalRepairCost + totalChargeCost;
+                    const annualCost = totalCost / durationYears;
+                    costs[evPlate] = annualCost;
+                });
+                return costs;
+            }, [repairData, evData]);
+
+            const breakevenPoints = useMemo(() => {
+                return Object.values(EV_CONFIG).map(ev => {
+                    const initialCost = ev.price;
+                    const evAnnualCost = evAnnualCosts[ev.name] || 0;
+                    const iceAnnualCost = iceBenchmarkCosts.avgAnnualCostPerVehicle;
+                    const annualSavings = iceAnnualCost - evAnnualCost;
+
+                    if (annualSavings <= 0) {
+                        return { ...ev, evAnnualCost, annualSavings, yearsToBreakeven: Infinity };
+                    }
+                    const yearsToBreakeven = initialCost / annualSavings;
+                    return { ...ev, initialCost, evAnnualCost, annualSavings, yearsToBreakeven };
+                });
+            }, [EV_CONFIG, iceBenchmarkCosts, evAnnualCosts]);
+
+            return (
+                <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 space-y-6">
+                    <h2 className="text-xl font-bold text-gray-800">วิเคราะห์จุดคุ้มทุนรถยนต์ไฟฟ้า (EV Break-Even Analysis)</h2>
+                    
+                    {/* Costs Summary Section */}
+                     <div className="p-4 border rounded-lg bg-blue-50">
+                        <h3 className="font-semibold text-lg text-blue-800">ค่าใช้จ่ายเฉลี่ยของรถสันดาป (Benchmark)</h3>
+                        <p className="text-sm text-blue-600 mb-2">
+                            คำนวณจากค่าซ่อมและค่าเชื้อเพลิงย้อนหลัง {formatNumber(iceBenchmarkCosts.durationYears, 1)} ปี ของรถ {ICE_VEHICLES_FOR_COMPARISON.length} คัน
+                        </p>
+                        <div className="text-3xl font-bold text-blue-900">{formatPrice(iceBenchmarkCosts.avgAnnualCostPerVehicle)}</div>
+                        <div className="text-md text-blue-700">บาท/คัน/ปี</div>
+                    </div>
+
+                    {/* Results Table */}
+                    <div className="overflow-x-auto">
+                        <h3 className="font-semibold text-lg text-slate-800 mb-2">ผลการวิเคราะห์จุดคุ้มทุน</h3>
+                        <p className="text-sm text-slate-600 mb-3">
+                            ตารางนี้แสดงระยะเวลาที่ส่วนต่างของค่าใช้จ่ายรายปี จะคุ้มทุนกับราคารถ EV ที่ลงทุนไป
+                        </p>
+                        <table className="w-full text-sm text-left text-gray-700 border-collapse">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-100">
+                                <tr>
+                                    <th className="px-4 py-3 border">เบอร์รถ EV</th>
+                                    <th className="px-4 py-3 border text-right">ราคารถ EV (บาท)</th>
+                                    <th className="px-4 py-3 border text-right">ค่าใช้จ่าย EV ต่อปี (บาท)</th>
+                                    <th className="px-4 py-3 border text-right">ประหยัดได้ต่อปี (บาท)</th>
+                                    <th className="px-4 py-3 border text-right">ระยะเวลาคุ้มทุน (ปี)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {breakevenPoints.map(ev => (
+                                    <tr key={ev.name} className="bg-white border-b hover:bg-gray-50">
+                                        <td className="px-4 py-3 border font-medium">{ev.name}</td>
+                                        <td className="px-4 py-3 border text-right">{formatPrice(ev.price)}</td>
+                                        <td className="px-4 py-3 border text-right text-red-600">{formatPrice(ev.evAnnualCost)}</td>
+                                        <td className={`px-4 py-3 border text-right font-semibold ${ev.annualSavings > 0 ? 'text-green-700' : 'text-red-700'}`}>{formatPrice(ev.annualSavings)}</td>
+                                        <td className="px-4 py-3 border text-right font-bold text-indigo-700">
+                                            {isFinite(ev.yearsToBreakeven) ? formatNumber(ev.yearsToBreakeven, 1) : 'ไม่คุ้มทุน'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+        // ### BREAKEVEN APP (END) ###
 
 
         // ##################################################################
         // ### MAIN APP COMPONENT (คอมโพเนนต์หลัก) ###
         // ##################################################################
         const App = () => {
-            const [activeApp, setActiveApp] = useState('repair'); // 'repair', 'fuel', 'ev', 'energy', 'ev_impact'
+            const [activeApp, setActiveApp] = useState('repair'); // 'repair', 'fuel', 'ev', 'energy', 'ev_impact', 'breakeven'
             const [data, setData] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
@@ -2570,6 +2709,8 @@
                         return <EnergyComparisonApp fuelData={data.fuelData} evData={data.evData} />;
                     case 'ev_impact':
                         return <EVImpactApp fuelData={data.fuelData} evData={data.evData} />;
+                    case 'breakeven':
+                        return <BreakevenApp repairData={data.repairData} fuelData={data.fuelData} evData={data.evData} />;
                     default:
                         return null;
                 }
@@ -2618,9 +2759,13 @@
                                     <Icons name="balance" className="w-6 h-6" />
                                     <span className="nav-text">เปรียบเทียบ</span>
                                 </button>
-                                <button title="ผลกระทบ EV" className={`nav-button ${activeApp === 'ev_impact' ? 'active' : ''}`} onClick={() => setActiveApp('ev_impact')}>
+                                <button title="ผลการประหยัด EV" className={`nav-button ${activeApp === 'ev_impact' ? 'active' : ''}`} onClick={() => setActiveApp('ev_impact')}>
                                      <dotlottie-wc src="https://lottie.host/ddc40909-2718-4242-927f-e3fda3ac77ca/L8DWV25LrA.lottie" style={{width: '24px', height: '24px'}} speed="1" autoplay loop></dotlottie-wc>
-                                    <span className="nav-text">ผลกระทบ EV</span>
+                                    <span className="nav-text">ผลประหยัดEV</span>
+                                </button>
+                                <button title="จุดคุ้มทุน EV" className={`nav-button ${activeApp === 'breakeven' ? 'active' : ''}`} onClick={() => setActiveApp('breakeven')}>
+                                     <Icons name="calculator" className="w-6 h-6" />
+                                    <span className="nav-text">จุดคุ้มทุน EV</span>
                                 </button>
                             </div>
                         </nav>

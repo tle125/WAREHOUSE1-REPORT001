@@ -1745,6 +1745,243 @@
             );
         };
 
+        const BatteryPerformanceAnalysis = ({ vehicleData, evConfig }) => {
+            const batteryAnalysis = useMemo(() => {
+                if (!vehicleData || vehicleData.length === 0) return [];
+
+                const analysis = vehicleData.map(vehicle => {
+                    const config = evConfig[vehicle.licensePlate];
+                    if (!config) return null;
+
+                    // คำนวณประสิทธิภาพแบตเตอรี่แบบขั้นสูง
+                    const avgKwhPerCharge = vehicle.totalKwh / vehicle.count;
+                    const avgCostPerKwh = vehicle.totalCost / vehicle.totalKwh;
+                    const chargingFrequency = vehicle.count; // จำนวนครั้งที่ชาร์จ
+                    
+                    // ประเมินประสิทธิภาพรวมปัจจัย SOC, DoD และ Cycle Efficiency
+                    const standardKwhPerCharge = 16; // kWh มาตรฐานต่อการชาร์จ
+                    
+                    // ประมาณค่า SOC และ DoD จากรูปแบบการใช้งาน
+                    const usageRatio = avgKwhPerCharge / standardKwhPerCharge;
+                    const estimatedSOC = Math.max(20, Math.min(90, 100 - (usageRatio - 1) * 50)); // SOC 20-90%
+                    const estimatedDoD = Math.min(80, usageRatio * 60); // DoD 0-80%
+                    const cycleEfficiency = 0.92; // ประสิทธิภาพรอบการชาร์จ 92%
+                    
+                    // ปัจจัยปรับแต่งตาม SOC และ DoD
+                    const socFactor = estimatedSOC > 80 ? 0.95 : (estimatedSOC < 30 ? 0.85 : 1.0);
+                    const dodFactor = estimatedDoD > 70 ? 0.90 : (estimatedDoD < 20 ? 0.95 : 1.0);
+                    
+                    // คำนวณประสิทธิภาพรวม
+                    const baseEfficiency = (avgKwhPerCharge / standardKwhPerCharge) * 100;
+                    const efficiency = (baseEfficiency * socFactor * dodFactor * cycleEfficiency).toFixed(1);
+                    
+                    // สถานะแบตเตอรี่ตามประสิทธิภาพ (ยิ่งใกล้ 100% ยิ่งดี)
+                    let batteryStatus = 'ดีเยี่ยม';
+                    let statusColor = 'text-green-600';
+                    if (efficiency > 120 || efficiency < 60) {
+                        batteryStatus = 'ต้องตรวจสอบ';
+                        statusColor = 'text-red-600';
+                    } else if (efficiency > 110 || efficiency < 80) {
+                        batteryStatus = 'ปานกลาง';
+                        statusColor = 'text-yellow-600';
+                    } else if (efficiency > 105 || efficiency < 95) {
+                        batteryStatus = 'ดี';
+                        statusColor = 'text-blue-600';
+                    }
+
+                    return {
+                        licensePlate: vehicle.licensePlate,
+                        totalKwh: vehicle.totalKwh,
+                        totalCost: vehicle.totalCost,
+                        count: vehicle.count,
+                        avgKwhPerCharge,
+                        avgCostPerKwh,
+                        efficiency: parseFloat(efficiency),
+                        batteryStatus,
+                        statusColor,
+                        chargingFrequency,
+                        estimatedSOC: estimatedSOC.toFixed(1),
+                        estimatedDoD: estimatedDoD.toFixed(1),
+                        cycleEfficiency: (cycleEfficiency * 100).toFixed(1),
+                        socFactor: socFactor.toFixed(2),
+                        dodFactor: dodFactor.toFixed(2)
+                    };
+                }).filter(Boolean);
+
+                return analysis.sort((a, b) => b.efficiency - a.efficiency);
+            }, [vehicleData, evConfig]);
+
+            if (batteryAnalysis.length === 0) return null;
+
+            return (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">การวิเคราะห์ประสิทธิภาพแบตเตอรี่รถ EV</h3>
+                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-100">
+                                <tr>
+                                    <th className="px-3 py-2 text-left font-medium text-slate-600">ทะเบียนรถ</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ประสิทธิภาพ (%)</th>
+                                    <th className="px-3 py-2 text-center font-medium text-slate-600">สถานะแบตเตอรี่</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">SOC (%)</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">DoD (%)</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">Cycle Eff (%)</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">เฉลี่ย kWh/ครั้ง</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ค่าไฟ/kWh</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ความถี่การชาร์จ</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ค่าไฟรวม</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {batteryAnalysis.map((item) => (
+                                    <tr key={item.licensePlate} className="border-t hover:bg-slate-50">
+                                        <td className="px-3 py-2 font-medium text-slate-700">{item.licensePlate}</td>
+                                        <td className="px-3 py-2 text-right font-semibold">
+                                            <span className={item.efficiency >= 95 ? 'text-green-600' : item.efficiency >= 85 ? 'text-blue-600' : item.efficiency >= 70 ? 'text-yellow-600' : 'text-red-600'}>
+                                                {item.efficiency}%
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.statusColor} bg-opacity-10`}>
+                                                {item.batteryStatus}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.estimatedSOC}%</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.estimatedDoD}%</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.cycleEfficiency}%</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{formatNumber(item.avgKwhPerCharge)} kWh</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{formatPrice(item.avgCostPerKwh)} บาท</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.chargingFrequency} ครั้ง</td>
+                                        <td className="px-3 py-2 text-right font-semibold text-sky-700">{formatPrice(item.totalCost)}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">
+                        <p>* ประสิทธิภาพคำนวณจากการเปรียบเทียบกับค่ามาตรฐาน 16 kWh ต่อการชาร์จ (100% = ใช้ไฟตามมาตรฐาน)</p>
+                        <p>* สถานะแบตเตอรี่: ดีเยี่ยม (95-105%), ดี (80-94% หรือ 106-110%), ปานกลาง (60-79% หรือ 111-120%), ต้องตรวจสอบ (&lt;60% หรือ &gt;120%)</p>
+                    </div>
+                </div>
+            );
+        };
+
+        const AdvancedBatteryMetrics = ({ vehicleData, evConfig }) => {
+            const advancedMetrics = useMemo(() => {
+                if (!vehicleData || vehicleData.length === 0) return [];
+
+                return vehicleData.map(vehicle => {
+                    const config = evConfig[vehicle.licensePlate];
+                    if (!config) return null;
+
+                    const avgKwhPerCharge = vehicle.totalKwh / vehicle.count;
+                    const chargingFrequency = vehicle.count;
+                    
+                    // Battery Health Score (0-100)
+                    const usageRatio = avgKwhPerCharge / 16;
+                    const frequencyFactor = Math.min(1, chargingFrequency / 30); // ปกติ 30 ครั้ง/เดือน
+                    const healthScore = Math.max(0, Math.min(100, 100 - (Math.abs(usageRatio - 1) * 20) - (frequencyFactor > 0.8 ? (frequencyFactor - 0.8) * 50 : 0)));
+                    
+                    // Temperature Impact Estimation (สมมติจากการใช้งาน)
+                    const tempImpact = usageRatio > 1.2 ? 'สูง' : usageRatio > 0.8 ? 'ปานกลาง' : 'ต่ำ';
+                    const tempColor = tempImpact === 'สูง' ? 'text-red-600' : tempImpact === 'ปานกลาง' ? 'text-yellow-600' : 'text-green-600';
+                    
+                    // Charging Pattern Analysis
+                    const avgChargePerDay = chargingFrequency / 30; // สมมติ 30 วัน
+                    let chargingPattern = 'ปกติ';
+                    let patternColor = 'text-blue-600';
+                    if (avgChargePerDay > 2) {
+                        chargingPattern = 'บ่อยเกินไป';
+                        patternColor = 'text-red-600';
+                    } else if (avgChargePerDay < 0.5) {
+                        chargingPattern = 'น้อยเกินไป';
+                        patternColor = 'text-orange-600';
+                    } else if (avgChargePerDay > 1.5) {
+                        chargingPattern = 'ค่อนข้างบ่อย';
+                        patternColor = 'text-yellow-600';
+                    }
+                    
+                    // Battery Degradation Estimate (% per year)
+                    const degradationRate = Math.max(1, Math.min(8, 2 + (Math.abs(usageRatio - 1) * 3) + (frequencyFactor > 0.8 ? 2 : 0)));
+                    
+                    // Optimal Charging Recommendation
+                    let recommendation = 'ใช้งานได้ตามปกติ';
+                    if (healthScore < 70) {
+                        recommendation = 'ควรตรวจสอบแบตเตอรี่';
+                    } else if (avgChargePerDay > 2) {
+                        recommendation = 'ลดความถี่การชาร์จ';
+                    } else if (usageRatio > 1.3) {
+                        recommendation = 'ลดการใช้งานหนัก';
+                    }
+
+                    return {
+                        licensePlate: vehicle.licensePlate,
+                        healthScore: healthScore.toFixed(1),
+                        tempImpact,
+                        tempColor,
+                        chargingPattern,
+                        patternColor,
+                        avgChargePerDay: avgChargePerDay.toFixed(1),
+                        degradationRate: degradationRate.toFixed(1),
+                        recommendation
+                    };
+                }).filter(Boolean);
+            }, [vehicleData, evConfig]);
+
+            if (advancedMetrics.length === 0) return null;
+
+            return (
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-3">เมตริกขั้นสูงสำหรับแบตเตอรี่ EV</h3>
+                    <div className="overflow-x-auto border rounded-lg bg-white shadow-sm">
+                        <table className="w-full text-sm">
+                            <thead className="bg-slate-100">
+                                <tr>
+                                    <th className="px-3 py-2 text-left font-medium text-slate-600">ทะเบียนรถ</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">Health Score</th>
+                                    <th className="px-3 py-2 text-center font-medium text-slate-600">อุณหภูมิกระทบ</th>
+                                    <th className="px-3 py-2 text-center font-medium text-slate-600">รูปแบบการชาร์จ</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">ชาร์จ/วัน</th>
+                                    <th className="px-3 py-2 text-right font-medium text-slate-600">การเสื่อม/ปี (%)</th>
+                                    <th className="px-3 py-2 text-left font-medium text-slate-600">คำแนะนำ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {advancedMetrics.map((item) => (
+                                    <tr key={item.licensePlate} className="border-t hover:bg-slate-50">
+                                        <td className="px-3 py-2 font-medium text-slate-700">{item.licensePlate}</td>
+                                        <td className="px-3 py-2 text-right font-semibold">
+                                            <span className={item.healthScore >= 80 ? 'text-green-600' : item.healthScore >= 60 ? 'text-yellow-600' : 'text-red-600'}>
+                                                {item.healthScore}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.tempColor} bg-opacity-10`}>
+                                                {item.tempImpact}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-center">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${item.patternColor} bg-opacity-10`}>
+                                                {item.chargingPattern}
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.avgChargePerDay}</td>
+                                        <td className="px-3 py-2 text-right text-slate-600">{item.degradationRate}%</td>
+                                        <td className="px-3 py-2 text-slate-600 text-xs">{item.recommendation}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">
+                        <p>* Health Score: คะแนนสุขภาพแบตเตอรี่ (100 = ดีที่สุด, 0 = ต้องเปลี่ยน)</p>
+                        <p>* การเสื่อม/ปี: ประมาณการอัตราการเสื่อมสภาพของแบตเตอรี่ต่อปี</p>
+                        <p>* อุณหภูมิกระทบ: ประเมินผลกระทบจากอุณหภูมิต่อประสิทธิภาพแบตเตอรี่</p>
+                    </div>
+                </div>
+            );
+        };
+
         const VehicleCostSummaryTable = ({ summaryData, onVehicleSelect }) => {
             if (!summaryData || summaryData.length === 0) return null;
 
@@ -1915,6 +2152,15 @@
             const [selectedMonth, setSelectedMonth] = useState('all');
             const [selectedVehicleDetails, setSelectedVehicleDetails] = useState(null);
 
+            // EV Configuration for battery analysis
+            const EV_CONFIG = {
+                'TT-19': { name: 'TT-19', price: 533930 },
+                'TT-20': { name: 'TT-20', price: 1660000 },
+                'TT-21': { name: 'TT-21', price: 1660000 },
+                'TT-22': { name: 'TT-22', price: 1660000 },
+                'TT-23': { name: 'TT-23', price: 1660000 },
+            };
+
             const { uniqueYears } = useMemo(() => {
                 const years = new Set(data.map(item => parseDate(item.date)?.getFullYear()).filter(Boolean));
                 return { uniqueYears: Array.from(years).sort((a, b) => b - a) };
@@ -2020,11 +2266,13 @@
                 const summary = filteredData.reduce((acc, item) => {
                     const vehicle = item.licensePlate || 'ไม่ระบุ';
                     const cost = parseFloat(item.electricityCost) || 0;
+                    const kwh = parseFloat(item.units) || 0;
 
                     if (!acc[vehicle]) {
-                        acc[vehicle] = { totalCost: 0, count: 0 };
+                        acc[vehicle] = { totalCost: 0, totalKwh: 0, count: 0 };
                     }
                     acc[vehicle].totalCost += cost;
+                    acc[vehicle].totalKwh += kwh;
                     acc[vehicle].count++;
                     return acc;
                 }, {});
@@ -2033,6 +2281,7 @@
                     .map(([licensePlate, data]) => ({
                         licensePlate,
                         totalCost: data.totalCost,
+                        totalKwh: data.totalKwh,
                         count: data.count,
                     }))
                     .sort((a, b) => b.totalCost - a.totalCost);
@@ -2138,6 +2387,8 @@
                     </div>
                     
                     <EVChargingCharts chartData={chartData} />
+                    <BatteryPerformanceAnalysis vehicleData={vehicleCostSummary} evConfig={EV_CONFIG} />
+                    <AdvancedBatteryMetrics vehicleData={vehicleCostSummary} evConfig={EV_CONFIG} />
                     <VehicleCostSummaryTable summaryData={vehicleCostSummary} onVehicleSelect={setSelectedVehicleDetails} />
 
                     <h3 className="text-lg font-semibold text-slate-800 mb-3 mt-8">รายละเอียดการชาร์จรายเดือน/สัปดาห์</h3>

@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>รายงานค่าใช้จ่าย Material handling</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
@@ -228,7 +230,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-        window.firebase = { initializeApp, getFirestore, collection, getDocs, query, orderBy };
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        window.firebase = { initializeApp, getFirestore, collection, getDocs, query, orderBy, getAuth, signInAnonymously };
     </script>
 </head>
 <body>
@@ -244,13 +247,13 @@
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwp0yu3ryGYYaaSIkTkOs64BFI3CYllPcQPJe3HcpldhPqHnggmmjTC1uSOV_xHLpUh/exec'; 
         
         const firebaseConfig = {
-          apiKey: "AIzaSyCEN8ANVFzs2dExfJP-HDTuRGxtV3TYzHU",
-          authDomain: "sodium-burner-428202-f9.firebaseapp.com",
-          projectId: "sodium-burner-428202-f9",
-          storageBucket: "sodium-burner-428202-f9.appspot.com",
-          messagingSenderId: "46765828618",
-          appId: "1:46765828618:web:59eb170cfcd92c0e578df3",
-          measurementId: "G-MJ19J3TF2R"
+          apiKey: "AIzaSyAtlLnWd2Rkbx48Gt2LSrqLrtFr1a7A46w",
+          authDomain: "tmtev-2025.firebaseapp.com",
+          projectId: "tmtev-2025",
+          storageBucket: "tmtev-2025.firebasestorage.app",
+          messagingSenderId: "224826852272",
+          appId: "1:224826852272:web:fd9c9805ea55747edc0c75",
+          measurementId: "G-KYW1JLVFHX"
         };
 
         // ##################################################################
@@ -1099,7 +1102,7 @@
                 const allData = [...filteredOut, ...filteredIn];
 
                 const grouped = allData.reduce((acc, item) => {
-                    const dateKey = parseDate(item['วันที่']).toISOString().split('T')[0];
+                    const dateKey = parseDate(item['วันที่']).toLocaleString('sv-SE', { timeZone: 'Asia/Bangkok' }).split(' ')[0];
                     if (!acc[dateKey]) {
                         acc[dateKey] = { items: [], totalOut: 0, totalIn: 0 };
                     }
@@ -2187,7 +2190,422 @@
         // ##################################################################
         // ### ENERGY COMPARISON APP (START) ###
         // ##################################################################
+        const MonthlyComparisonLineChart = ({ data, currentYear, previousYear }) => {
+            const chartRef = React.useRef(null);
+            const chartInstance = React.useRef(null);
+            
+            const labels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const previousYearData = data.map(d => d.previousYear);
+            const currentYearData = data.map(d => d.currentYear);
+            
+            React.useEffect(() => {
+                if (chartRef.current) {
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    // Destroy existing chart
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                    
+                    // Calculate smooth trend line using moving average
+                    const calculateSmoothTrend = (data) => {
+                        const smoothedData = [];
+                        const windowSize = 3; // 3-month moving average
+                        
+                        for (let i = 0; i < data.length; i++) {
+                            let sum = 0;
+                            let count = 0;
+                            
+                            // Calculate moving average with available data points
+                            for (let j = Math.max(0, i - Math.floor(windowSize/2)); 
+                                 j <= Math.min(data.length - 1, i + Math.floor(windowSize/2)); j++) {
+                                if (data[j] !== null && data[j] !== undefined) {
+                                    sum += data[j];
+                                    count++;
+                                }
+                            }
+                            
+                            smoothedData[i] = count > 0 ? sum / count : data[i];
+                        }
+                        
+                        return smoothedData;
+                    };
+                    
+                    const currentYearTrend = calculateSmoothTrend(currentYearData);
+                    const previousYearTrend = calculateSmoothTrend(previousYearData);
+                    
+                    const chartData = {
+                        labels: labels,
+                        datasets: [{
+                            type: 'bar',
+                            label: `ปี ${previousYear + 543}`,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            borderColor: '#3b82f6',
+                            borderWidth: 1,
+                            data: previousYearData,
+                            order: 2
+                        }, {
+                            type: 'bar',
+                            label: `ปี ${currentYear + 543}`,
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            data: currentYearData,
+                            order: 2
+                        }, {
+                            type: 'line',
+                            label: `แนวโน้ม ปี ${previousYear + 543}`,
+                            borderColor: '#1e40af',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            borderDash: [8, 4],
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            data: previousYearTrend,
+                            order: 1,
+                            tension: 0.4
+                        }, {
+                            type: 'line',
+                            label: `แนวโน้ม ปี ${currentYear + 543}`,
+                            borderColor: '#059669',
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            borderDash: [8, 4],
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            data: currentYearTrend,
+                            order: 1,
+                            tension: 0.4
+                        }]
+                    };
+                    
+                    const config = {
+                        type: 'bar',
+                        data: chartData,
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `เปรียบเทียบค่าน้ำมันรายเดือน: ปี ${previousYear + 543} vs ปี ${currentYear + 543}`,
+                                    font: {
+                                        size: 16,
+                                        weight: 'bold'
+                                    },
+                                    color: '#374151'
+                                },
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        usePointStyle: true,
+                                        padding: 20,
+                                        font: {
+                                            size: 12
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#374151',
+                                    borderWidth: 1,
+                                    cornerRadius: 8,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            const value = context.parsed.y;
+                                            if (value === null || value === undefined) return null;
+                                            return `${context.dataset.label}: ${formatPrice(value)} บาท`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: {
+                                        display: false
+                                    },
+                                    ticks: {
+                                        font: {
+                                            size: 11
+                                        },
+                                        color: '#6b7280'
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: {
+                                        color: 'rgba(156, 163, 175, 0.3)'
+                                    },
+                                    ticks: {
+                                        font: {
+                                            size: 11
+                                        },
+                                        color: '#6b7280',
+                                        callback: function(value) {
+                                            return formatPrice(value) + ' บาท';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    
+                    chartInstance.current = new Chart(ctx, config);
+                }
+                
+                return () => {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
+                    }
+                };
+            }, [data, currentYear, previousYear]);
+            
+            return (
+                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                    <div className="relative h-96">
+                        <canvas ref={chartRef}></canvas>
+                    </div>
+                </div>
+            );
+        };
+        
+        // Progress Bar Component สำหรับแสดงการเปรียบเทียบ
+        const ComparisonProgressBar = ({ currentValue, previousValue, title, unit = "บาท" }) => {
+            const difference = currentValue - previousValue;
+            const percentageChange = previousValue > 0 ? ((difference / previousValue) * 100) : 0;
+            const isIncrease = difference > 0;
+            const isSaving = difference < 0;
+            
+            // คำนวณความกว้างของ progress bar (0-100%)
+            const maxValue = Math.max(currentValue, previousValue);
+            const currentPercentage = maxValue > 0 ? (currentValue / maxValue) * 100 : 0;
+            const previousPercentage = maxValue > 0 ? (previousValue / maxValue) * 100 : 0;
+            
+            return (
+                <div className="bg-white p-6 rounded-lg shadow-md border">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+                    
+                    {/* เดือนที่แล้ว */}
+                    <div className="mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-gray-600">เดือนที่แล้ว</span>
+                            <span className="text-sm font-semibold text-blue-600">{formatPrice(previousValue)} {unit}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                                className="bg-blue-500 h-3 rounded-full transition-all duration-500 ease-out"
+                                style={{ width: `${previousPercentage}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                    
+                    {/* เดือนปัจจุบัน */}
+                    <div className="mb-4">
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm font-medium text-gray-600">เดือนปัจจุบัน</span>
+                            <span className={`text-sm font-semibold ${isIncrease ? 'text-red-600' : 'text-green-600'}`}>
+                                {formatPrice(currentValue)} {unit}
+                            </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                            <div 
+                                className={`h-3 rounded-full transition-all duration-500 ease-out ${
+                                    isIncrease ? 'bg-red-500' : 'bg-green-500'
+                                }`}
+                                style={{ width: `${currentPercentage}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                    
+                    {/* ผลต่าง */}
+                    <div className={`p-4 rounded-lg ${
+                        isSaving ? 'bg-green-50 border border-green-200' : 
+                        isIncrease ? 'bg-red-50 border border-red-200' : 'bg-gray-50 border border-gray-200'
+                    }`}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className={`w-3 h-3 rounded-full mr-2 ${
+                                    isSaving ? 'bg-green-500' : 
+                                    isIncrease ? 'bg-red-500' : 'bg-gray-500'
+                                }`}></div>
+                                <span className="text-sm font-medium text-gray-700">
+                                    {isSaving ? 'ประหยัด' : isIncrease ? 'เพิ่มขึ้น' : 'ไม่เปลี่ยนแปลง'}
+                                </span>
+                            </div>
+                            <div className="text-right">
+                                <div className={`text-lg font-bold ${
+                                    isSaving ? 'text-green-600' : 
+                                    isIncrease ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                    {formatPrice(Math.abs(difference))} {unit}
+                                </div>
+                                <div className={`text-sm ${
+                                    isSaving ? 'text-green-500' : 
+                                    isIncrease ? 'text-red-500' : 'text-gray-500'
+                                }`}>
+                                    {Math.abs(percentageChange).toFixed(1)}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         const EnergyComparisonApp = ({ fuelData, evData }) => {
+            const today = new Date();
+            const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+            const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // เดือนปัจจุบัน
+            
+            // ตรวจสอบข้อมูล
+            if (!fuelData || !fuelData.supply) {
+                return (
+                    <div className="bg-white rounded-lg shadow-lg p-6">
+                        <h2 className="text-xl font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายน้ำมันรายเดือน</h2>
+                        <div className="text-center p-8 text-gray-600">
+                            <p>ไม่พบข้อมูลน้ำมัน กรุณารอสักครู่...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            const { uniqueYears, availableMonths } = useMemo(() => {
+                const years = new Set();
+                const months = new Set();
+                const supply = fuelData?.supply || [];
+                supply.forEach(item => {
+                    const date = parseDate(item['วันที่']);
+                    if (date) {
+                        years.add(date.getFullYear());
+                        if (date.getFullYear() === selectedYear) {
+                            months.add(date.getMonth());
+                        }
+                    }
+                });
+                
+                // ถ้าไม่มีข้อมูลปี ให้ใช้ปีปัจจุบัน
+                if (years.size === 0) {
+                    const currentYear = new Date().getFullYear();
+                    years.add(currentYear);
+                }
+                
+                return { 
+                    uniqueYears: Array.from(years).sort((a, b) => b - a),
+                    availableMonths: Array.from(months).sort((a, b) => a - b)
+                };
+            }, [fuelData, selectedYear]);
+
+            const comparisonData = useMemo(() => {
+                const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
+
+                const getMonthlyFuelCost = (year, month) => {
+                    return fuel.filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        if (!date) return false;
+                        return date.getFullYear() === year && date.getMonth() === month;
+                    }).reduce((sum, item) => sum + (Number(item['ราคาน้ำมัน']) || 0), 0);
+                };
+
+                const currentMonthCost = getMonthlyFuelCost(selectedYear, selectedMonth);
+                const previousMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+                const previousMonthYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+                const previousMonthCost = getMonthlyFuelCost(previousMonthYear, previousMonth);
+                
+                const difference = currentMonthCost - previousMonthCost;
+                const percentageChange = previousMonthCost > 0 ? ((difference / previousMonthCost) * 100) : 0;
+                
+                // คำนวณค่าเฉลี่ยต่อวัน
+                const daysInCurrentMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+                const daysInPreviousMonth = new Date(previousMonthYear, previousMonth + 1, 0).getDate();
+                const avgCurrentMonthPerDay = currentMonthCost / daysInCurrentMonth;
+                const avgPreviousMonthPerDay = previousMonthCost / daysInPreviousMonth;
+                const avgDailyDifference = avgCurrentMonthPerDay - avgPreviousMonthPerDay;
+
+                return {
+                    currentMonthCost,
+                    previousMonthCost,
+                    difference,
+                    percentageChange,
+                    avgCurrentMonthPerDay,
+                    avgPreviousMonthPerDay,
+                    avgDailyDifference,
+                    currentMonthName: getThaiMonthName(selectedMonth),
+                    previousMonthName: getThaiMonthName(previousMonth),
+                    previousMonthYear
+                };
+
+            }, [fuelData, selectedYear, selectedMonth]);
+
+
+
+            return (
+                <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายน้ำมันรายเดือน</h2>
+                    <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
+                        <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            {uniqueYears.map(y => <option key={y} value={y}>{y + 543}</option>)}
+                        </select>
+                        <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
+                            {availableMonths.map(month => <option key={month} value={month}>{getThaiMonthName(month)}</option>)}
+                        </select>
+                    </div>
+
+                    {/* เปรียบเทียบข้อมูลเดือนปัจจุบันกับเดือนที่แล้ว */}
+                    <div className="mb-6">
+                        <div className="text-center mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800">
+                                เปรียบเทียบ {comparisonData.currentMonthName} {selectedYear + 543} กับ {comparisonData.previousMonthName} {comparisonData.previousMonthYear + 543}
+                            </h3>
+                        </div>
+                        
+                        <ComparisonProgressBar 
+                            currentValue={comparisonData.currentMonthCost}
+                            previousValue={comparisonData.previousMonthCost}
+                            title="ค่าใช้จ่ายน้ำมันรวม"
+                            unit="บาท"
+                        />
+                    </div>
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        <SummaryCard 
+                            title={`${comparisonData.currentMonthName} ${selectedYear + 543}`}
+                            value={formatPrice(comparisonData.currentMonthCost)}
+                            unit="บาท"
+                            icon={<img src="https://img.icons8.com/?size=80&id=93a3SInn9e4L&format=png" className="w-8 h-8"/>}
+                            color={{bg:'bg-blue-100', border:'border-blue-500'}}
+                        />
+                        <SummaryCard 
+                            title={`${comparisonData.previousMonthName} ${comparisonData.previousMonthYear + 543}`}
+                            value={formatPrice(comparisonData.previousMonthCost)}
+                            unit="บาท"
+                            icon={<img src="https://img.icons8.com/?size=80&id=93a3SInn9e4L&format=png" className="w-8 h-8"/>}
+                            color={{bg:'bg-gray-100', border:'border-gray-500'}}
+                        />
+                        <SummaryCard 
+                            title="ค่าเฉลี่ยต่อวัน"
+                            value={formatPrice(Math.abs(comparisonData.avgDailyDifference))}
+                            unit={comparisonData.avgDailyDifference >= 0 ? "บาท/วัน (เพิ่ม)" : "บาท/วัน (ลด)"}
+                            icon={<Icons name="balance"/>}
+                            color={{bg: comparisonData.avgDailyDifference >= 0 ? 'bg-red-100' : 'bg-green-100', border: comparisonData.avgDailyDifference >= 0 ? 'border-red-500' : 'border-green-500'}}
+                        />
+                    </div>
+                </div>
+            );
+        };
+        
+        // ##################################################################
+        // ### EV IMPACT APP (START) ###
+        // ##################################################################
+        const EVImpactApp = ({ fuelData, evData }) => {
             const today = new Date();
             const [selectedYear, setSelectedYear] = useState(today.getFullYear());
             const [selectedMonth, setSelectedMonth] = useState('all'); // 'all' for the whole year
@@ -2198,299 +2616,85 @@
                     const date = parseDate(item['วันที่']);
                     if (date) years.add(date.getFullYear());
                 });
-                (evData || []).forEach(item => {
-                    const date = parseDate(item.date);
-                    if (date) years.add(date.getFullYear());
-                });
                 return { uniqueYears: Array.from(years).sort((a, b) => b - a) };
-            }, [fuelData, evData]);
+            }, [fuelData]);
 
             const comparisonData = useMemo(() => {
-                const year = selectedYear;
+                const currentYear = selectedYear;
+                const previousYear = selectedYear - 1;
                 
                 const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
-                const ev = evData || [];
-
-                const getFilteredCost = (data, dateField, costField, month) => {
-                    return data.filter(item => {
-                        const date = parseDate(item[dateField]);
-                        if (!date) return false;
-                        const yearMatch = date.getFullYear() === year;
-                        const monthMatch = month === 'all' || date.getMonth() === month;
-                        return yearMatch && monthMatch;
-                    }).reduce((sum, item) => sum + (Number(item[costField]) || 0), 0);
-                };
-
-                const totalFuelCost = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน', selectedMonth);
-                const totalEvCost = getFilteredCost(ev, 'date', 'electricityCost', selectedMonth);
-                const totalSavings = totalFuelCost - totalEvCost;
-
-                const daysInPeriod = selectedMonth === 'all' 
-                    ? (new Date(year, 11, 31) - new Date(year, 0, 1)) / (1000 * 60 * 60 * 24) + 1
-                    : new Date(year, selectedMonth + 1, 0).getDate();
                 
-                const avgDailySavings = totalSavings / daysInPeriod;
-
-                const monthlyData = Array.from({ length: 12 }).map((_, i) => {
-                    const monthlyFuel = getFilteredCost(fuel, 'วันที่', 'ราคาน้ำมัน', i);
-                    const monthlyEv = getFilteredCost(ev, 'date', 'electricityCost', i);
+                const getYearlyData = (year) => {
+                    const yearData = fuel.filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        return date && date.getFullYear() === year;
+                    });
+                    
+                    const monthlyData = Array(12).fill(0);
+                    let totalCost = 0;
+                    
+                    yearData.forEach(item => {
+                        const date = parseDate(item['วันที่']);
+                        if (date) {
+                            const month = date.getMonth();
+                            const cost = Number(item['ราคาน้ำมัน']) || 0;
+                            monthlyData[month] += cost;
+                            totalCost += cost;
+                        }
+                    });
+                    
+                    return { monthlyData, totalCost };
+                };
+                
+                const currentYearData = getYearlyData(currentYear);
+                const previousYearData = getYearlyData(previousYear);
+                
+                const totalDifference = currentYearData.totalCost - previousYearData.totalCost;
+                const avgDailyDifference = totalDifference / 365;
+                
+                const monthlyChartData = Array(12).fill(0).map((_, month) => {
+                    const currentMonthCost = currentYearData.monthlyData[month];
+                    const previousMonthCost = previousYearData.monthlyData[month];
+                    const difference = currentMonthCost - previousMonthCost;
+                    
                     return {
-                        label: getThaiMonthName(i),
-                        fuel: monthlyFuel,
-                        ev: monthlyEv,
+                        month,
+                        currentYear: currentMonthCost,
+                        previousYear: previousMonthCost,
+                        difference: difference
                     };
                 });
                 
-                const monthlyChartData = monthlyData.map((month, i) => {
-                    const prevMonthFuel = i > 0 ? monthlyData[i-1].fuel : 0;
-                    const fuelSavings = prevMonthFuel - month.fuel;
-                    return {...month, fuelSavings };
-                });
-
-
                 return {
-                    totalFuelCost,
-                    totalEvCost,
-                    totalSavings,
-                    avgDailySavings,
+                    currentYearTotal: currentYearData.totalCost,
+                    previousYearTotal: previousYearData.totalCost,
+                    totalDifference,
+                    avgDailyDifference,
                     monthlyChartData
                 };
-
-            }, [fuelData, evData, selectedYear, selectedMonth]);
-
-            const MonthlyComparisonBarChart = ({ data }) => {
-                const maxValue = Math.max(...data.flatMap(d => [d.fuel, d.ev, d.fuelSavings]), 1);
-
-                const BarRow = ({ label, value, colorClass, textColorClass }) => {
-                    const percentage = maxValue > 0 ? (Math.abs(value) / maxValue) * 100 : 0;
-                    const showTextInside = percentage > 20;
-
-                    return (
-                        <div className="flex items-center space-x-2">
-                            <div className={`w-24 text-xs text-right font-medium ${textColorClass}`}>{label}:</div>
-                            <div className="flex-1 flex items-center">
-                                <div className="flex-1 bg-gray-200 rounded-full h-5">
-                                    <div 
-                                        className={`${colorClass} h-5 rounded-full text-white text-xs flex items-center justify-end pr-2`} 
-                                        style={{ width: `${percentage}%` }}
-                                    >
-                                        {showTextInside && formatPrice(value)}
-                                    </div>
-                                </div>
-                                {!showTextInside && <span className="ml-2 text-xs font-medium text-slate-700">{formatPrice(value)}</span>}
-                            </div>
-                        </div>
-                    );
-                };
-
-                return (
-                    <div className="bg-white rounded-lg shadow-md p-4">
-                        <h3 className="font-semibold text-lg mb-4 text-slate-800">เปรียบเทียบค่าใช้จ่ายรายเดือน</h3>
-                        <div className="space-y-4">
-                            {data.map(monthData => {
-                                const isSaving = monthData.fuelSavings >= 0;
-                                return (
-                                    <div key={monthData.label}>
-                                        <div className="font-medium text-sm text-slate-600 mb-2">{monthData.label}</div>
-                                        <div className="space-y-1">
-                                            <BarRow 
-                                                label="ค่าน้ำมัน" 
-                                                value={monthData.fuel} 
-                                                colorClass="bg-blue-500"
-                                                textColorClass="text-blue-700"
-                                            />
-                                            <BarRow 
-                                                label="ค่าไฟ EV" 
-                                                value={monthData.ev} 
-                                                colorClass="bg-green-500"
-                                                textColorClass="text-green-700"
-                                            />
-                                            <BarRow 
-                                                label={isSaving ? "ประหยัดน้ำมัน" : "น้ำมันใช้เพิ่ม"}
-                                                value={monthData.fuelSavings} 
-                                                colorClass={isSaving ? "bg-amber-500" : "bg-red-500"}
-                                                textColorClass={isSaving ? "text-amber-700" : "text-red-700"}
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                );
-            };
+            }, [fuelData, selectedYear]);
 
             return (
                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">เปรียบเทียบค่าใช้จ่ายพลังงาน</h2>
+                    <h2 className="text-xl font-bold text-gray-800 mb-4">แนวโน้มค่าใช้จ่ายน้ำมันเทียบรายปี</h2>
                     <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row gap-2">
                         <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
                             {uniqueYears.map(y => <option key={y} value={y}>{y + 543}</option>)}
                         </select>
                         <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value === 'all' ? 'all' : Number(e.target.value))} className="px-3 py-2 border border-gray-300 rounded-md">
-                            <option value="all">ทุกเดือน</option>
-                            {Array.from({ length: 12 }).map((_, i) => <option key={i} value={i}>{['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][i]}</option>)}
+                            <option value="all">ทั้งปี</option>
+                            {Array.from({length: 12}, (_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
                         </select>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                        <SummaryCard title="ค่าใช้จ่ายน้ำมันรวม" value={formatPrice(comparisonData.totalFuelCost)} unit="บาท" icon={<img src="https://img.icons8.com/?size=80&id=93a3SInn9e4L&format=png" className="w-8 h-8"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
-                        <SummaryCard title="ค่าใช้จ่าย EV รวม" value={formatPrice(comparisonData.totalEvCost)} unit="บาท" icon={<Icons name="bolt"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
-                        <SummaryCard title="ประหยัดได้ทั้งหมด" value={formatPrice(comparisonData.totalSavings)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-yellow-100', border:'border-yellow-500'}}/>
-                        <SummaryCard title="ประหยัดต่อวัน (เฉลี่ย)" value={formatPrice(comparisonData.avgDailySavings)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-purple-100', border:'border-purple-500'}}/>
+                        <SummaryCard title={`ค่าน้ำมันปี ${selectedYear - 1 + 543}`} value={formatPrice(comparisonData.previousYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
+                        <SummaryCard title={`ค่าน้ำมันปี ${selectedYear + 543}`} value={formatPrice(comparisonData.currentYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
+                        <SummaryCard title="ผลต่างค่าน้ำมัน" value={formatPrice(Math.abs(comparisonData.totalDifference))} unit={comparisonData.totalDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.totalDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.totalDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
+                        <SummaryCard title="เปลี่ยนแปลงต่อวัน" value={formatPrice(Math.abs(comparisonData.avgDailyDifference))} unit={comparisonData.avgDailyDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.avgDailyDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.avgDailyDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
                     </div>
                     
-                    <MonthlyComparisonBarChart data={comparisonData.monthlyChartData} />
-                </div>
-            );
-        };
-        
-        // ##################################################################
-        // ### EV IMPACT APP (START) ###
-        // ##################################################################
-        const EVImpactApp = ({ fuelData, evData }) => {
-            const EV_START_DATE = new Date('2025-08-01');
-            const EV_START_YEAR = EV_START_DATE.getFullYear();
-            const PREVIOUS_YEAR = EV_START_YEAR - 1;
-
-            const impactData = useMemo(() => {
-                const fuel = (fuelData?.supply || []).filter(item => item['เลขที่ใบเบิก SAP'] !== 'ยอดยกมา');
-                
-                const getMonthlyAverageCost = (data, dateField, costField, isBefore) => {
-                    const today = new Date();
-                    const currentMonth = today.getMonth();
-                    const currentYear = today.getFullYear();
-
-                    const filteredData = data.filter(item => {
-                        const d = parseDate(item[dateField]);
-                        if (!d) return false;
-
-                        // Condition 1: Check if the date is before or after the EV start date
-                        const isWithinEvPeriod = isBefore ? d < EV_START_DATE : d >= EV_START_DATE;
-                        
-                        // Condition 2: Check if the date is before the current month
-                        const isBeforeCurrentMonth = d.getFullYear() < currentYear || (d.getFullYear() === currentYear && d.getMonth() < currentMonth);
-
-                        return isWithinEvPeriod && isBeforeCurrentMonth;
-                    });
-
-                    if (filteredData.length === 0) return 0;
-
-                    const monthlyTotals = {};
-                    
-                    filteredData.forEach(item => {
-                        const d = parseDate(item[dateField]);
-                        if (d) {
-                            const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
-                            if (!monthlyTotals[monthKey]) {
-                                monthlyTotals[monthKey] = 0;
-                            }
-                            monthlyTotals[monthKey] += Number(item[costField]) || 0;
-                        }
-                    });
-                    
-                    const totalCost = Object.values(monthlyTotals).reduce((sum, val) => sum + val, 0);
-                    const monthCount = Object.keys(monthlyTotals).length;
-
-                    return monthCount > 0 ? totalCost / monthCount : 0;
-                };
-
-                const avgFuelCostBefore = getMonthlyAverageCost(fuel, 'วันที่', 'ราคาน้ำมัน', true);
-                const avgFuelCostAfter = getMonthlyAverageCost(fuel, 'วันที่', 'ราคาน้ำมัน', false);
-                const avgEvCostAfter = getMonthlyAverageCost(evData, 'date', 'electricityCost', false);
-                const avgTotalCostAfter = avgFuelCostAfter + avgEvCostAfter;
-                
-                const netSavings = avgFuelCostBefore - avgTotalCostAfter;
-                const reduction = avgFuelCostBefore > 0 ? (netSavings / avgFuelCostBefore) * 100 : 0;
-                
-                const getYearlyMonthlyData = (year) => {
-                    const fuelCost = Array(12).fill(0);
-                    const evCost = Array(12).fill(0);
-
-                    fuel.filter(item => parseDate(item['วันที่'])?.getFullYear() === year)
-                        .forEach(item => {
-                            const month = parseDate(item['วันที่']).getMonth();
-                            fuelCost[month] += Number(item['ราคาน้ำมัน']) || 0;
-                        });
-
-                    evData.filter(item => parseDate(item.date)?.getFullYear() === year)
-                        .forEach(item => {
-                            const month = parseDate(item.date).getMonth();
-                            evCost[month] += Number(item.electricityCost) || 0;
-                        });
-                    
-                    return { fuelCost, evCost };
-                };
-
-                const previousYearCost = getYearlyMonthlyData(PREVIOUS_YEAR).fuelCost;
-                const currentYearCosts = getYearlyMonthlyData(EV_START_YEAR);
-                const currentYearTotalCost = currentYearCosts.fuelCost.map((fc, i) => fc + currentYearCosts.evCost[i]);
-
-                return {
-                    avgBefore: avgFuelCostBefore,
-                    avgAfter: avgTotalCostAfter,
-                    reduction,
-                    netSavings,
-                    previousYearData: previousYearCost,
-                    currentYearData: currentYearTotalCost,
-                };
-            }, [fuelData, evData]);
-            
-             const ImpactLineChart = ({ previousYearData, currentYearData }) => {
-                const labels = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-                const allData = [...previousYearData, ...currentYearData];
-                const maxValue = Math.max(...allData, 1); // Avoid division by zero
-                
-                const dataToPath = (data, color) => {
-                    const points = data.map((point, i) => {
-                        const x = (i / (labels.length - 1)) * 100;
-                        const y = 100 - (point / maxValue) * 95; // Use 95% of height to avoid touching top
-                        return `${x},${y}`;
-                    }).join(' ');
-                    return <polyline fill="none" stroke={color} strokeWidth="2" points={points} />;
-                };
-
-                return (
-                    <div className="bg-white p-6 rounded-lg shadow-md mt-6 relative pb-10">
-                         <h3 className="font-semibold text-lg mb-4 text-slate-800">แนวโน้มค่าใช้จ่ายพลังงานเทียบรายปี</h3>
-                         <div className="flex justify-center space-x-4 mb-4 text-sm">
-                            <div className="flex items-center"><div className="w-4 h-1 bg-gray-400 mr-2"></div><span>ค่าน้ำมันปี {PREVIOUS_YEAR + 543}</span></div>
-                            <div className="flex items-center"><div className="w-4 h-1 bg-blue-600 mr-2"></div><span>ค่าพลังงานรวมปี {EV_START_YEAR + 543}</span></div>
-                         </div>
-                         <div className="relative h-64 pl-10 pr-4">
-                            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute top-0 left-0">
-                                {Array.from({length: 5}).map((_, i) => (
-                                    <line key={i} x1="0" y1={i * 25} x2="100" y2={i * 25} stroke="#e2e8f0" strokeWidth="0.5" />
-                                ))}
-                                {dataToPath(previousYearData, '#9ca3af')}
-                                {dataToPath(currentYearData, '#2563eb')}
-                                <line x1={(7 / 11) * 100} y1="0" x2={(7 / 11) * 100} y2="100" stroke="#ef4444" strokeWidth="1" strokeDasharray="4 2" />
-                            </svg>
-                            <div className="absolute -bottom-6 left-0 right-0 flex justify-between text-xs text-gray-500">
-                                {labels.map(label => <span key={label} className="w-1/12 text-center">{label}</span>)}
-                            </div>
-                             <div className="absolute top-0 -left-10 bottom-0 flex flex-col justify-between text-xs text-gray-500 text-right">
-                                 <span>{formatPrice(maxValue)}</span>
-                                 <span>{formatPrice(maxValue * 0.75)}</span>
-                                 <span>{formatPrice(maxValue * 0.5)}</span>
-                                 <span>{formatPrice(maxValue * 0.25)}</span>
-                                 <span>0</span>
-                            </div>
-                         </div>
-                    </div>
-                );
-            };
-
-            return (
-                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">ผลการประหยัดจากการใช้รถ EV ต่อค่าใช้จ่ายน้ำมัน</h2>
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-                        <SummaryCard title="ค่าใช้จ่ายน้ำมันเฉลี่ย (ก่อนมี EV)" value={formatPrice(impactData.avgBefore)} unit="บาท/เดือน" icon={<Icons name="balance"/>} color={{bg:'bg-gray-100', border:'border-gray-400'}}/>
-                        <SummaryCard title="ค่าพลังงานรวมเฉลี่ย (หลังมี EV)" value={formatPrice(impactData.avgAfter)} unit="บาท/เดือน" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
-                        <SummaryCard title="ประหยัดขึ้น (เปอร์เซ็นต์)" value={`${formatNumber(impactData.reduction)}%`} unit="" icon={<Icons name="down"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
-                        <SummaryCard title="ประหยัดสุทธิ (หลังหักค่าไฟ)" value={formatPrice(impactData.netSavings)} unit="บาท/เดือน" icon={<Icons name="balance"/>} color={{bg:'bg-yellow-100', border:'border-yellow-500'}}/>
-                    </div>
-                    <ImpactLineChart previousYearData={impactData.previousYearData} currentYearData={impactData.currentYearData} />
+                    <MonthlyComparisonLineChart data={comparisonData.monthlyChartData} currentYear={selectedYear} previousYear={selectedYear - 1} />
                 </div>
             );
         };
@@ -2656,15 +2860,25 @@
                 try {
                     // Initialize Firebase
                     const app = window.firebase.initializeApp(firebaseConfig);
+                    const auth = window.firebase.getAuth(app);
                     const db = window.firebase.getFirestore(app);
 
+                    // Authenticate anonymously first
+                    console.log('Attempting anonymous authentication...');
+                    const userCredential = await window.firebase.signInAnonymously(auth);
+                    console.log('Authentication successful:', userCredential.user.uid);
+
                     // Fetch from Google Sheet and Firebase in parallel
+                    console.log('Fetching data from Google Sheet and Firestore...');
                     const [sheetResponse, historySnapshot] = await Promise.all([
                         fetch(SCRIPT_URL),
                         window.firebase.getDocs(window.firebase.query(
-                            window.firebase.collection(db, `artifacts/sodium-burner-428202-f9/history`),
+                            window.firebase.collection(db, `artifacts/tmtev-2025/history`),
                             window.firebase.orderBy("date", "desc")
-                        ))
+                        )).catch(error => {
+                            console.error('Firestore error:', error);
+                            throw error;
+                        })
                     ]);
 
                     if (!sheetResponse.ok) {

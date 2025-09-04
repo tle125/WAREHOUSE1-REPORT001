@@ -2831,6 +2831,13 @@
                 
                 const currentYearTotal = getYearlyFuelCost(selectedYear);
                 const previousYearTotal = getYearlyFuelCost(selectedYear - 1);
+                
+                // คำนวณเปอร์เซ็นต์การประหยัดน้ำมันและการลดคาร์บอน
+                const yearlyFuelSavings = previousYearTotal - currentYearTotal;
+                const yearlyFuelSavingsPercentage = previousYearTotal > 0 ? ((yearlyFuelSavings / previousYearTotal) * 100) : 0;
+                const yearlyCarbonReduction = yearlyFuelSavings > 0 ? calculateCarbonReductionFromCostSavings(yearlyFuelSavings) : 0;
+                const previousYearCarbonTotal = calculateCarbonReductionFromCostSavings(previousYearTotal);
+                const yearlyCarbonReductionPercentage = previousYearCarbonTotal > 0 ? ((yearlyCarbonReduction / previousYearCarbonTotal) * 100) : 0;
 
                 return {
                     currentMonthCost,
@@ -2844,7 +2851,11 @@
                     previousMonthName: getThaiMonthName(previousMonth),
                     previousMonthYear,
                     currentYearTotal,
-                    previousYearTotal
+                    previousYearTotal,
+                    yearlyFuelSavings,
+                    yearlyFuelSavingsPercentage,
+                    yearlyCarbonReduction,
+                    yearlyCarbonReductionPercentage
                 };
 
             }, [fuelData, selectedYear, selectedMonth]);
@@ -2880,7 +2891,7 @@
                     </div>
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
                         <SummaryCard 
                             title={`${comparisonData.currentMonthName} ${selectedYear + 543}`}
                             value={formatPrice(comparisonData.currentMonthCost)}
@@ -2909,6 +2920,22 @@
                             icon={<span className="text-2xl">🌱</span>}
                             color={{bg:'bg-green-100', border:'border-green-500'}}
                             footerText={comparisonData.currentYearTotal < comparisonData.previousYearTotal ? `จากการประหยัดน้ำมันตลอดทั้งปี ${formatPrice(comparisonData.previousYearTotal - comparisonData.currentYearTotal)} บาท` : 'ไม่มีการประหยัด'}
+                        />
+                        <SummaryCard 
+                            title="% ประหยัดน้ำมัน"
+                            value={comparisonData.yearlyFuelSavingsPercentage > 0 ? comparisonData.yearlyFuelSavingsPercentage.toFixed(2) : '0'}
+                            unit="%"
+                            icon={<span className="text-2xl">⛽</span>}
+                            color={{bg: comparisonData.yearlyFuelSavingsPercentage > 0 ? 'bg-blue-100' : 'bg-gray-100', border: comparisonData.yearlyFuelSavingsPercentage > 0 ? 'border-blue-500' : 'border-gray-500'}}
+                            footerText={`เปรียบเทียบกับปี ${selectedYear - 1 + 543}`}
+                        />
+                        <SummaryCard 
+                            title="% ลดคาร์บอน"
+                            value={comparisonData.yearlyCarbonReductionPercentage > 0 ? comparisonData.yearlyCarbonReductionPercentage.toFixed(2) : '0'}
+                            unit="%"
+                            icon={<span className="text-2xl">🌍</span>}
+                            color={{bg: comparisonData.yearlyCarbonReductionPercentage > 0 ? 'bg-emerald-100' : 'bg-gray-100', border: comparisonData.yearlyCarbonReductionPercentage > 0 ? 'border-emerald-500' : 'border-gray-500'}}
+                            footerText={`เปรียบเทียบกับปี ${selectedYear - 1 + 543}`}
                         />                    </div>
 
                     {/* Cards แสดงข้อมูลทุกเดือนในปีที่เลือก */}

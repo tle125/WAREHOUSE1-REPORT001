@@ -569,6 +569,55 @@
             const toggleMonth = (monthKey) => setExpandedMonths(prev => { const newSet = new Set(prev); if (newSet.has(monthKey)) newSet.delete(monthKey); else newSet.add(monthKey); return newSet; });
             const totalCost = useMemo(() => filteredData.reduce((sum, item) => sum + calculateTotalCost(item), 0), [filteredData]);
 
+            // Calculate yearly totals for summary cards
+            const currentYear = new Date().getFullYear();
+            const lastYear = currentYear - 1;
+            
+            const currentYearTotal = useMemo(() => {
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    return 0;
+                }
+                
+                const currentYearData = data.filter(item => {
+                    const dateStr = item['วันที่แจ้งซ่อม(APP)'];
+                    if (!dateStr) return false;
+                    
+                    const parsedDate = parseDate(dateStr);
+                    if (!parsedDate) return false;
+                    
+                    const itemYear = parsedDate.getFullYear();
+                    return itemYear === currentYear;
+                });
+                
+                return currentYearData.reduce((sum, item) => {
+                    return sum + calculateTotalCost(item);
+                }, 0);
+            }, [data, currentYear]);
+            
+            const lastYearTotal = useMemo(() => {
+                if (!data || !Array.isArray(data) || data.length === 0) {
+                    return 0;
+                }
+                
+                const lastYearData = data.filter(item => {
+                    const dateStr = item['วันที่แจ้งซ่อม(APP)'];
+                    if (!dateStr) return false;
+                    
+                    const parsedDate = parseDate(dateStr);
+                    if (!parsedDate) return false;
+                    
+                    const itemYear = parsedDate.getFullYear();
+                    return itemYear === lastYear;
+                });
+                
+                return lastYearData.reduce((sum, item) => {
+                    return sum + calculateTotalCost(item);
+                }, 0);
+            }, [data, lastYear]);
+            
+            const yearlyDifference = currentYearTotal - lastYearTotal;
+            const yearlyPercentChange = lastYearTotal > 0 ? ((yearlyDifference / lastYearTotal) * 100) : 0;
+
             const searchColumns = [
                 { key: 'ลำดับที่', label: 'ลำดับที่', render: (val, row, index) => index + 1 },
                 { key: 'เบอร์รถ', label: 'เบอร์รถ' },
@@ -583,6 +632,40 @@
 
             return (
                 <div>
+                    {/* Yearly Summary Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <SummaryCard
+                            title={`ยอดซ่อมปี ${currentYear}`}
+                            value={formatPrice(currentYearTotal)}
+                            unit="บาท"
+                            icon="📊"
+                            color="blue"
+                        />
+                        <SummaryCard
+                            title={`ยอดซ่อมปี ${lastYear}`}
+                            value={formatPrice(lastYearTotal)}
+                            unit="บาท"
+                            icon="📈"
+                            color="gray"
+                        />
+                        <SummaryCard
+                            title="ผลต่าง"
+                            value={formatPrice(Math.abs(yearlyDifference))}
+                            unit="บาท"
+                            icon={yearlyDifference >= 0 ? "📈" : "📉"}
+                            color={yearlyDifference >= 0 ? "red" : "green"}
+                            subtitle={yearlyDifference >= 0 ? "เพิ่มขึ้น" : "ลดลง"}
+                        />
+                        <SummaryCard
+                            title="% การเปลี่ยนแปลง"
+                            value={Math.abs(yearlyPercentChange).toFixed(1)}
+                            unit="%"
+                            icon={yearlyPercentChange >= 0 ? "📈" : "📉"}
+                            color={yearlyPercentChange >= 0 ? "red" : "green"}
+                            subtitle={yearlyPercentChange >= 0 ? "เพิ่มขึ้น" : "ลดลง"}
+                        />
+                    </div>
+                    
                     <div className="mb-4 sm:mb-6">
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                             <input type="text" placeholder="ค้นหา..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto" />
@@ -935,6 +1018,11 @@
                 const previousMonthTotal = previousMonthData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
                 
                 const difference = currentMonthTotal - previousMonthTotal;
+                
+                // คำนวณเปอร์เซ็นต์การเปลี่ยนแปลงค่าใช้จ่าย
+                const percentageChange = previousMonthTotal > 0 
+                    ? ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100 
+                    : 0;
 
                 return {
                     currentMonthData,
@@ -942,6 +1030,7 @@
                     currentMonthTotal,
                     previousMonthTotal,
                     difference,
+                    percentageChange,
                     prevMonth,
                     prevYear
                 };
@@ -1000,7 +1089,7 @@
                         </div>
                     ) : (
                         <div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                                 <SummaryCard 
                                     title={`ยอดซ่อม ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][selectedMonth]} ${selectedYear + 543}`}
                                     value={formatPrice(comparisonData.currentMonthTotal)}
@@ -1023,6 +1112,16 @@
                                     color={comparisonData.difference >= 0 ? 
                                         { bg: 'bg-red-100', icon: 'text-red-600', border: 'border-red-500' } : 
                                         { bg: 'bg-green-100', icon: 'text-green-600', border: 'border-green-500' }}
+                                />
+                                <SummaryCard 
+                                    title="% การเปลี่ยนแปลง"
+                                    value={Math.abs(comparisonData.percentageChange).toFixed(1)}
+                                    unit="%"
+                                    icon={comparisonData.percentageChange >= 0 ? <Icons name="up"/> : <Icons name="down"/>}
+                                    color={comparisonData.percentageChange >= 0 ? 
+                                        { bg: 'bg-red-100', icon: 'text-red-600', border: 'border-red-500' } : 
+                                        { bg: 'bg-green-100', icon: 'text-green-600', border: 'border-green-500' }}
+                                    footer={`เทียบกับ ${['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'][comparisonData.prevMonth]} ${comparisonData.prevYear + 543}`}
                                 />
                             </div>
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

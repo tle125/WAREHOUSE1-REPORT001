@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -2818,6 +2819,18 @@
                 const avgCurrentMonthPerDay = currentMonthCost / daysInCurrentMonth;
                 const avgPreviousMonthPerDay = previousMonthCost / daysInPreviousMonth;
                 const avgDailyDifference = avgCurrentMonthPerDay - avgPreviousMonthPerDay;
+                
+                // คำนวณค่าน้ำมันทั้งปี
+                const getYearlyFuelCost = (year) => {
+                    return fuel.filter(item => {
+                        const date = parseDate(item['วันที่']);
+                        if (!date) return false;
+                        return date.getFullYear() === year;
+                    }).reduce((sum, item) => sum + (Number(item['ราคาน้ำมัน']) || 0), 0);
+                };
+                
+                const currentYearTotal = getYearlyFuelCost(selectedYear);
+                const previousYearTotal = getYearlyFuelCost(selectedYear - 1);
 
                 return {
                     currentMonthCost,
@@ -2829,7 +2842,9 @@
                     avgDailyDifference,
                     currentMonthName: getThaiMonthName(selectedMonth),
                     previousMonthName: getThaiMonthName(previousMonth),
-                    previousMonthYear
+                    previousMonthYear,
+                    currentYearTotal,
+                    previousYearTotal
                 };
 
             }, [fuelData, selectedYear, selectedMonth]);
@@ -2888,12 +2903,12 @@
                             color={{bg: comparisonData.avgDailyDifference >= 0 ? 'bg-red-100' : 'bg-green-100', border: comparisonData.avgDailyDifference >= 0 ? 'border-red-500' : 'border-green-500'}}
                         />
                         <SummaryCard 
-                            title="การลดคาร์บอน"
-                            value={comparisonData.difference < 0 ? formatCarbonReduction(calculateCarbonReductionFromCostSavings(Math.abs(comparisonData.difference))) : '0 กก.'}
+                            title="การลดคาร์บอนตลอดทั้งปี"
+                            value={comparisonData.currentYearTotal < comparisonData.previousYearTotal ? formatCarbonReduction(calculateCarbonReductionFromCostSavings(comparisonData.previousYearTotal - comparisonData.currentYearTotal)) : '0 กก.'}
                             unit="CO₂"
                             icon={<span className="text-2xl">🌱</span>}
                             color={{bg:'bg-green-100', border:'border-green-500'}}
-                            footerText={comparisonData.difference < 0 ? `จากการประหยัดน้ำมัน ${formatPrice(Math.abs(comparisonData.difference))} บาท` : 'ไม่มีการประหยัด'}
+                            footerText={comparisonData.currentYearTotal < comparisonData.previousYearTotal ? `จากการประหยัดน้ำมันตลอดทั้งปี ${formatPrice(comparisonData.previousYearTotal - comparisonData.currentYearTotal)} บาท` : 'ไม่มีการประหยัด'}
                         />                    </div>
 
                     {/* Cards แสดงข้อมูลทุกเดือนในปีที่เลือก */}
@@ -3072,11 +3087,12 @@
                             {Array.from({length: 12}, (_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
                         </select>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
                         <SummaryCard title={`ค่าน้ำมันปี ${selectedYear - 1 + 543}`} value={formatPrice(comparisonData.previousYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
                         <SummaryCard title={`ค่าน้ำมันปี ${selectedYear + 543}`} value={formatPrice(comparisonData.currentYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
                         <SummaryCard title="ผลต่างค่าน้ำมัน" value={formatPrice(Math.abs(comparisonData.totalDifference))} unit={comparisonData.totalDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.totalDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.totalDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
                         <SummaryCard title="เปลี่ยนแปลงต่อวัน" value={formatPrice(Math.abs(comparisonData.avgDailyDifference))} unit={comparisonData.avgDailyDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.avgDailyDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.avgDailyDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
+                        <SummaryCard title="การลดคาร์บอนตลอดทั้งปี" value={formatCarbonReduction(calculateCarbonReductionFromCostSavings(Math.abs(comparisonData.totalDifference)))} unit="CO₂" icon={<Icons name="leaf"/>} color={{bg:'bg-emerald-100', border:'border-emerald-500'}}/>
                     </div>
                     
                     <MonthlyComparisonLineChart data={comparisonData.monthlyChartData} currentYear={selectedYear} previousYear={selectedYear - 1} />
@@ -3354,13 +3370,13 @@
                                     <Icons name="bolt" className="w-6 h-6" />
                                     <span className="nav-text">ชาร์จไฟEV</span>
                                 </button>
-                                <button title="เปรียบเทียบพลังงาน" className={`nav-button ${activeApp === 'energy' ? 'active' : ''}`} onClick={() => setActiveApp('energy')}>
+                                <button title="เปรียบเทียบการใช้น้ำมัน" className={`nav-button ${activeApp === 'energy' ? 'active' : ''}`} onClick={() => setActiveApp('energy')}>
                                     <Icons name="balance" className="w-6 h-6" />
                                     <span className="nav-text">เปรียบเทียบ</span>
                                 </button>
                                 <button title="ผลการประหยัด EV" className={`nav-button ${activeApp === 'ev_impact' ? 'active' : ''}`} onClick={() => setActiveApp('ev_impact')}>
                                      <dotlottie-wc src="https://lottie.host/ddc40909-2718-4242-927f-e3fda3ac77ca/L8DWV25LrA.lottie" style={{width: '24px', height: '24px'}} speed="1" autoplay loop></dotlottie-wc>
-                                    <span className="nav-text">ผลประหยัดEV</span>
+                                    <span className="nav-text">แนวโน้มการใช้น้ำมัน</span>
                                 </button>
                                 <button title="จุดคุ้มทุน EV" className={`nav-button ${activeApp === 'breakeven' ? 'active' : ''}`} onClick={() => setActiveApp('breakeven')}>
                                      <Icons name="calculator" className="w-6 h-6" />

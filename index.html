@@ -3093,11 +3093,17 @@
                     };
                 });
                 
+                // คำนวณเปอร์เซ็นต์การประหยัดน้ำมันต่อปี
+                const yearlyFuelSavingsPercentage = previousYearData.totalCost > 0 
+                    ? ((previousYearData.totalCost - currentYearData.totalCost) / previousYearData.totalCost) * 100 
+                    : 0;
+                
                 return {
                     currentYearTotal: currentYearData.totalCost,
                     previousYearTotal: previousYearData.totalCost,
                     totalDifference,
                     avgDailyDifference,
+                    yearlyFuelSavingsPercentage,
                     monthlyChartData
                 };
             }, [fuelData, selectedYear]);
@@ -3114,12 +3120,20 @@
                             {Array.from({length: 12}, (_, i) => <option key={i} value={i}>{getThaiMonthName(i)}</option>)}
                         </select>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-6">
                         <SummaryCard title={`ค่าน้ำมันปี ${selectedYear - 1 + 543}`} value={formatPrice(comparisonData.previousYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-blue-100', border:'border-blue-500'}}/>
                         <SummaryCard title={`ค่าน้ำมันปี ${selectedYear + 543}`} value={formatPrice(comparisonData.currentYearTotal)} unit="บาท" icon={<Icons name="balance"/>} color={{bg:'bg-green-100', border:'border-green-500'}}/>
                         <SummaryCard title="ผลต่างค่าน้ำมัน" value={formatPrice(Math.abs(comparisonData.totalDifference))} unit={comparisonData.totalDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.totalDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.totalDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
                         <SummaryCard title="เปลี่ยนแปลงต่อวัน" value={formatPrice(Math.abs(comparisonData.avgDailyDifference))} unit={comparisonData.avgDailyDifference >= 0 ? "บาท (เพิ่ม)" : "บาท (ลด)"} icon={<Icons name="balance"/>} color={{bg: comparisonData.avgDailyDifference >= 0 ? 'bg-red-100' : 'bg-yellow-100', border: comparisonData.avgDailyDifference >= 0 ? 'border-red-500' : 'border-yellow-500'}}/>
                         <SummaryCard title="การลดคาร์บอนตลอดทั้งปี" value={formatCarbonReduction(calculateCarbonReductionFromCostSavings(Math.abs(comparisonData.totalDifference)))} unit="CO₂" icon={<Icons name="leaf"/>} color={{bg:'bg-emerald-100', border:'border-emerald-500'}}/>
+                        <SummaryCard 
+                            title="% ประหยัดน้ำมันต่อปี" 
+                            value={comparisonData.yearlyFuelSavingsPercentage >= 0 ? comparisonData.yearlyFuelSavingsPercentage.toFixed(2) : '0.00'} 
+                            unit={comparisonData.yearlyFuelSavingsPercentage >= 0 ? '% (ประหยัด)' : '% (เพิ่มขึ้น)'} 
+                            icon={<span className="text-lg">⛽</span>} 
+                            color={{bg: comparisonData.yearlyFuelSavingsPercentage >= 0 ? 'bg-green-100' : 'bg-red-100', border: comparisonData.yearlyFuelSavingsPercentage >= 0 ? 'border-green-500' : 'border-red-500'}} 
+                            footer={`เปรียบเทียบกับปี ${selectedYear - 1 + 543}`}
+                        />
                     </div>
                     
                     <MonthlyComparisonLineChart data={comparisonData.monthlyChartData} currentYear={selectedYear} previousYear={selectedYear - 1} />

@@ -331,6 +331,23 @@
             if (!priceString) return 0;
             return String(priceString).split(/[,;|+]/).map(p => parseFloat(p.trim())).filter(p => !isNaN(p)).reduce((sum, current) => sum + current, 0);
         };
+        const calculateTirePrice = (sparePartsString) => {
+            if (!sparePartsString) return 0;
+            const parts = String(sparePartsString).toLowerCase();
+            // ค้นหาคำว่า "ราคายาง" หรือ "ยาง" และดึงตัวเลขที่อยู่ข้างหลัง
+            const tireMatches = parts.match(/(?:ราคายาง|ยาง)\s*[:\-]?\s*([\d,\.]+)/g);
+            if (!tireMatches) return 0;
+            
+            let total = 0;
+            tireMatches.forEach(match => {
+                const priceMatch = match.match(/([\d,\.]+)/);
+                if (priceMatch) {
+                    const price = parseFloat(priceMatch[1].replace(/,/g, ''));
+                    if (!isNaN(price)) total += price;
+                }
+            });
+            return total;
+        };
         const calculateTotalCost = (item) => {
             const sparePartsPrice = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
             const servicePrice = parseFloat(String(item['ราคา'])) || 0;
@@ -651,20 +668,20 @@
             const currentYear = new Date().getFullYear();
             const lastYear = currentYear - 1;
 
-            // คำนวณค่าซ่อมทั้งหมด (ยกเว้นยาง)
+            // คำนวณค่าซ่อมทั้งหมด (ไม่รวมราคายาง)
             const repairCosts = useMemo(() => {
                 const currentYearRepairs = repairData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isNotTire = !item['ประเภท']?.toLowerCase().includes('ยาง') && 
-                                     !item['รายการซ่อม']?.toLowerCase().includes('ยาง');
-                    return date && date.getFullYear() === currentYear && isNotTire;
+                    const isNotTirePrice = !(item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
+                                           item['รายการซ่อม']?.toLowerCase().includes('ราคายาง'));
+                    return date && date.getFullYear() === currentYear && isNotTirePrice;
                 });
                 
                 const lastYearRepairs = repairData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isNotTire = !item['ประเภท']?.toLowerCase().includes('ยาง') && 
-                                     !item['รายการซ่อม']?.toLowerCase().includes('ยาง');
-                    return date && date.getFullYear() === lastYear && isNotTire;
+                    const isNotTirePrice = !(item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
+                                           item['รายการซ่อม']?.toLowerCase().includes('ราคายาง'));
+                    return date && date.getFullYear() === lastYear && isNotTirePrice;
                 });
 
                 const currentTotal = currentYearRepairs.reduce((sum, item) => sum + calculateTotalCost(item), 0);
@@ -696,24 +713,35 @@
                 return { currentTotal, lastTotal, difference, percentChange };
             }, [fuelData, currentYear, lastYear]);
 
-            // คำนวณค่าซ่อมยาง
+            // คำนวณราคายาง
             const tireCosts = useMemo(() => {
                 const currentYearTires = repairData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isTire = item['ประเภท']?.toLowerCase().includes('ยาง') || 
-                                  item['รายการซ่อม']?.toLowerCase().includes('ยาง');
+                    const isTire = item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
+                                  item['รายการซ่อม']?.toLowerCase().includes('ราคายาง');
                     return date && date.getFullYear() === currentYear && isTire;
                 });
                 
                 const lastYearTires = repairData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isTire = item['ประเภท']?.toLowerCase().includes('ยาง') || 
-                                  item['รายการซ่อม']?.toLowerCase().includes('ยาง');
+                    const isTire = item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
+                                  item['รายการซ่อม']?.toLowerCase().includes('ราคายาง');
                     return date && date.getFullYear() === lastYear && isTire;
                 });
 
-                const currentTotal = currentYearTires.reduce((sum, item) => sum + calculateTotalCost(item), 0);
-                const lastTotal = lastYearTires.reduce((sum, item) => sum + calculateTotalCost(item), 0);
+                // Debug: แสดงข้อมูลยางปี 2025
+                console.log('=== ข้อมูลยางปี 2025 ===');
+                console.log('จำนวนรายการ:', currentYearTires.length);
+                currentYearTires.forEach((item, index) => {
+                    const price = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
+                    console.log(`${index + 1}. เบอร์รถ: ${item['เบอร์รถ']}, ราคาอะไหล่: ${item['ราคาอะไหล่']}, คำนวณได้: ${price}`);
+                });
+                
+                const currentTotal = currentYearTires.reduce((sum, item) => sum + calculateTotalSparePartsPrice(item['ราคาอะไหล่']), 0);
+                const lastTotal = lastYearTires.reduce((sum, item) => sum + calculateTotalSparePartsPrice(item['ราคาอะไหล่']), 0);
+                
+                console.log('ผลรวมราคายางปี 2025:', currentTotal);
+                console.log('ผลรวมราคายางปี 2024:', lastTotal);
                 const difference = currentTotal - lastTotal;
                 const percentChange = lastTotal > 0 ? ((difference / lastTotal) * 100) : 0;
 
@@ -748,10 +776,10 @@
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {/* ค่าซ่อม (ยกเว้นยาง) */}
+                        {/* ค่าซ่อมทั้งหมด */}
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-800">ค่าซ่อม (ยกเว้นยาง)</h3>
+                                <h3 className="text-lg font-semibold text-gray-800">ค่าซ่อมทั้งหมด</h3>
                                 <Icons name="toolbox" className="w-8 h-8 text-blue-600" />
                             </div>
                             <div className="space-y-3">
@@ -812,10 +840,10 @@
                             </div>
                         </div>
 
-                        {/* ค่าซ่อมยาง */}
+                        {/* ราคายาง */}
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-800">ค่าซ่อมยาง</h3>
+                                <h3 className="text-lg font-semibold text-gray-800">ราคายาง</h3>
                                 <Icons name="circle" className="w-8 h-8 text-gray-600" />
                             </div>
                             <div className="space-y-3">
@@ -906,6 +934,24 @@
                                         {formatPrice(repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference)}
                                     </span>
                                 </div>
+                                <div>
+                                    <span className="text-sm text-gray-600">% เปลี่ยนแปลง</span>
+                                    <span className={`font-semibold ${
+                                        (() => {
+                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal;
+                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal;
+                                            const percentChange = totalLast > 0 ? ((totalCurrent - totalLast) / totalLast) * 100 : 0;
+                                            return percentChange >= 0 ? 'text-red-600' : 'text-green-600';
+                                        })()
+                                    }`}>
+                                        {(() => {
+                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal;
+                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal;
+                                            const percentChange = totalLast > 0 ? ((totalCurrent - totalLast) / totalLast) * 100 : 0;
+                                            return (percentChange >= 0 ? '+' : '') + percentChange.toFixed(1) + '%';
+                                        })()}
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -915,7 +961,7 @@
                         title="กราฟเปรียบเทียบค่าใช้จ่ายแต่ละหมวด"
                         data={[
                             {
-                                category: "ค่าซ่อม (ยกเว้นยาง)",
+                                category: "ค่าซ่อมทั้งหมด",
                                 current: repairCosts.currentTotal,
                                 last: repairCosts.lastTotal,
                                 difference: repairCosts.difference
@@ -927,7 +973,7 @@
                                 difference: fuelCosts.difference
                             },
                             {
-                                category: "ค่าซ่อมยาง",
+                                category: "ราคายาง",
                                 current: tireCosts.currentTotal,
                                 last: tireCosts.lastTotal,
                                 difference: tireCosts.difference
@@ -1034,54 +1080,7 @@
             const toggleMonth = (monthKey) => setExpandedMonths(prev => { const newSet = new Set(prev); if (newSet.has(monthKey)) newSet.delete(monthKey); else newSet.add(monthKey); return newSet; });
             const totalCost = useMemo(() => filteredData.reduce((sum, item) => sum + calculateTotalCost(item), 0), [filteredData]);
 
-            // Calculate yearly totals for summary cards
-            const currentYear = new Date().getFullYear();
-            const lastYear = currentYear - 1;
-            
-            const currentYearTotal = useMemo(() => {
-                if (!data || !Array.isArray(data) || data.length === 0) {
-                    return 0;
-                }
-                
-                const currentYearData = data.filter(item => {
-                    const dateStr = item['วันที่แจ้งซ่อม(APP)'];
-                    if (!dateStr) return false;
-                    
-                    const parsedDate = parseDate(dateStr);
-                    if (!parsedDate) return false;
-                    
-                    const itemYear = parsedDate.getFullYear();
-                    return itemYear === currentYear;
-                });
-                
-                return currentYearData.reduce((sum, item) => {
-                    return sum + calculateTotalCost(item);
-                }, 0);
-            }, [data, currentYear]);
-            
-            const lastYearTotal = useMemo(() => {
-                if (!data || !Array.isArray(data) || data.length === 0) {
-                    return 0;
-                }
-                
-                const lastYearData = data.filter(item => {
-                    const dateStr = item['วันที่แจ้งซ่อม(APP)'];
-                    if (!dateStr) return false;
-                    
-                    const parsedDate = parseDate(dateStr);
-                    if (!parsedDate) return false;
-                    
-                    const itemYear = parsedDate.getFullYear();
-                    return itemYear === lastYear;
-                });
-                
-                return lastYearData.reduce((sum, item) => {
-                    return sum + calculateTotalCost(item);
-                }, 0);
-            }, [data, lastYear]);
-            
-            const yearlyDifference = currentYearTotal - lastYearTotal;
-            const yearlyPercentChange = lastYearTotal > 0 ? ((yearlyDifference / lastYearTotal) * 100) : 0;
+
 
             const searchColumns = [
                 { key: 'ลำดับที่', label: 'ลำดับที่', render: (val, row, index) => index + 1 },
@@ -1097,39 +1096,7 @@
 
             return (
                 <div>
-                    {/* Yearly Summary Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <SummaryCard
-                            title={`ยอดซ่อมปี ${currentYear}`}
-                            value={formatPrice(currentYearTotal)}
-                            unit="บาท"
-                            icon="📊"
-                            color="blue"
-                        />
-                        <SummaryCard
-                            title={`ยอดซ่อมปี ${lastYear}`}
-                            value={formatPrice(lastYearTotal)}
-                            unit="บาท"
-                            icon="📈"
-                            color="gray"
-                        />
-                        <SummaryCard
-                            title="ผลต่าง"
-                            value={formatPrice(Math.abs(yearlyDifference))}
-                            unit="บาท"
-                            icon={yearlyDifference >= 0 ? "📈" : "📉"}
-                            color={yearlyDifference >= 0 ? "red" : "green"}
-                            subtitle={yearlyDifference >= 0 ? "เพิ่มขึ้น" : "ลดลง"}
-                        />
-                        <SummaryCard
-                            title="% การเปลี่ยนแปลง"
-                            value={Math.abs(yearlyPercentChange).toFixed(1)}
-                            unit="%"
-                            icon={yearlyPercentChange >= 0 ? "📈" : "📉"}
-                            color={yearlyPercentChange >= 0 ? "red" : "green"}
-                            subtitle={yearlyPercentChange >= 0 ? "เพิ่มขึ้น" : "ลดลง"}
-                        />
-                    </div>
+
                     
                     <div className="mb-4 sm:mb-6">
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">

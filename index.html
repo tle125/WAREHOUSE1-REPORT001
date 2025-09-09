@@ -283,7 +283,7 @@
         
         // Google Sheets CSV Export Configuration for Transport Data
         const TRANSPORT_SPREADSHEET_ID = '1Dn72dYdEGz3GBvk3O5n1FN0RCKv5S1IvgLeA5M5RzWc';
-        const TRANSPORT_SHEET_ID = '606634465'; 
+        const TRANSPORT_SHEET_ID = '196876876'; 
         
         const firebaseConfig = {
           apiKey: "AIzaSyAtlLnWd2Rkbx48Gt2LSrqLrtFr1a7A46w",
@@ -454,7 +454,8 @@
                 balance: <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 6.75h7.5M8.25 12h7.5m-7.5 5.25h7.5M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />,
                 impact: <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1-8.414 1.414M2.25 18 18 2.25M12 21V9M15.75 21v-5.25M8.25 21v-5.25" />,
                 calculator: <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75V18m-7.5-6.75h.008v.008H8.25v-.008zm0 3h.008v.008H8.25v-.008zm0 3h.008v.008H8.25v-.008zm3-6h.008v.008H11.25v-.008zm0 3h.008v.008H11.25v-.008zm0 3h.008v.008H11.25v-.008zm3-6h.008v.008H14.25v-.008zm0 3h.008v.008H14.25v-.008zM4.5 3.75v16.5a2.25 2.25 0 002.25 2.25h10.5a2.25 2.25 0 002.25-2.25V3.75m-15 0h15M4.5 3.75a2.25 2.25 0 012.25-2.25h10.5a2.25 2.25 0 012.25 2.25" />,
-                grid: <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+                grid: <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />,
+                'clipboard-list': <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
             };
             return <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}>{iconPaths[name]}</svg>;
         };
@@ -536,67 +537,79 @@
                         </div>
                     </div>
 
-                    {/* Vertical Bar Chart */}
-                    <div className="flex justify-center items-end space-x-2 sm:space-x-8 h-60 sm:h-80 bg-gray-50 rounded-lg p-2 sm:p-4 overflow-x-auto">
+                    {/* Horizontal Bar Chart */}
+                    <div className="space-y-4 sm:space-y-6 bg-gray-50 rounded-lg p-3 sm:p-6">
                         {data.map((item, index) => (
-                            <div key={index} className="flex flex-col items-center space-y-1 sm:space-y-2 min-w-0 flex-shrink-0">
+                            <div key={index} className="bg-white rounded-lg p-3 sm:p-4 shadow-sm">
                                 {/* Category Label */}
-                                <div className="text-xs text-gray-600 text-center font-medium mb-1 sm:mb-2 w-12 sm:w-20">
+                                <div className="text-sm sm:text-base font-semibold text-gray-700 mb-3">
                                     {item.category.replace(' (ยกเว้นยาง)', '').replace('ค่า', '')}
                                 </div>
                                 
-                                {/* Bars Container */}
-                                <div className="flex items-end space-x-0.5 sm:space-x-1 h-40 sm:h-64">
+                                {/* Horizontal Bars Container */}
+                                <div className="space-y-2 sm:space-y-3">
                                     {/* Current Year Bar */}
-                                    <div className="flex flex-col items-center">
-                                        <div 
-                                            className={`${colors.current} w-4 sm:w-8 rounded-t flex items-end justify-center pb-1`}
-                                            style={{ height: maxValue > 0 ? `${(item.current / maxValue) * (window.innerWidth < 768 ? 160 : 240)}px` : '2px' }}
-                                        >
-                                            <span className="text-xs text-white font-medium transform -rotate-90 whitespace-nowrap hidden sm:block">
-                                                {maxValue > 0 && (item.current / maxValue) * 240 > 30 ? 
-                                                    formatPrice(item.current).replace('฿', '').replace(',', 'K').slice(0, -3) + 'K' : ''}
-                                            </span>
+                                    <div className="flex items-center space-x-2 sm:space-x-3">
+                                        <div className="w-16 sm:w-20 text-xs sm:text-sm text-blue-600 font-medium">
+                                            ปี {new Date().getFullYear()}
                                         </div>
-                                        <div className="text-xs text-blue-600 mt-1 font-medium text-center">
-                                            <span className="hidden sm:inline">{formatPrice(item.current)}</span>
-                                            <span className="sm:hidden">{formatPrice(item.current).replace('฿', '').replace(',', 'K').slice(0, -3)}K</span>
+                                        <div className="flex-1 bg-gray-200 rounded-full h-4 sm:h-6 relative overflow-hidden">
+                                            <div 
+                                                className={`${colors.current} h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500`}
+                                                style={{ width: maxValue > 0 ? `${(item.current / maxValue) * 100}%` : '1%' }}
+                                            >
+                                                <span className="text-xs text-white font-medium">
+                                                    {maxValue > 0 && (item.current / maxValue) * 100 > 15 ? formatPrice(item.current) : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="w-20 sm:w-24 text-xs sm:text-sm text-blue-600 font-medium text-right">
+                                            {formatPrice(item.current)}
                                         </div>
                                     </div>
 
                                     {/* Last Year Bar */}
-                                    <div className="flex flex-col items-center">
-                                        <div 
-                                            className={`${colors.last} w-4 sm:w-8 rounded-t flex items-end justify-center pb-1`}
-                                            style={{ height: maxValue > 0 ? `${(item.last / maxValue) * (window.innerWidth < 768 ? 160 : 240)}px` : '2px' }}
-                                        >
-                                            <span className="text-xs text-white font-medium transform -rotate-90 whitespace-nowrap hidden sm:block">
-                                                {maxValue > 0 && (item.last / maxValue) * 240 > 30 ? 
-                                                    formatPrice(item.last).replace('฿', '').replace(',', 'K').slice(0, -3) + 'K' : ''}
-                                            </span>
+                                    <div className="flex items-center space-x-2 sm:space-x-3">
+                                        <div className="w-16 sm:w-20 text-xs sm:text-sm text-gray-600 font-medium">
+                                            ปี {new Date().getFullYear() - 1}
                                         </div>
-                                        <div className="text-xs text-gray-600 mt-1 font-medium text-center">
-                                            <span className="hidden sm:inline">{formatPrice(item.last)}</span>
-                                            <span className="sm:hidden">{formatPrice(item.last).replace('฿', '').replace(',', 'K').slice(0, -3)}K</span>
+                                        <div className="flex-1 bg-gray-200 rounded-full h-4 sm:h-6 relative overflow-hidden">
+                                            <div 
+                                                className={`${colors.last} h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500`}
+                                                style={{ width: maxValue > 0 ? `${(item.last / maxValue) * 100}%` : '1%' }}
+                                            >
+                                                <span className="text-xs text-white font-medium">
+                                                    {maxValue > 0 && (item.last / maxValue) * 100 > 15 ? formatPrice(item.last) : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="w-20 sm:w-24 text-xs sm:text-sm text-gray-600 font-medium text-right">
+                                            {formatPrice(item.last)}
                                         </div>
                                     </div>
 
                                     {/* Difference Bar */}
-                                    <div className="flex flex-col items-center">
-                                        <div 
-                                            className={`${item.difference >= 0 ? colors.differenceNegative : colors.difference} w-4 sm:w-8 rounded-t flex items-end justify-center pb-1`}
-                                            style={{ height: maxValue > 0 ? `${(Math.abs(item.difference) / maxValue) * (window.innerWidth < 768 ? 160 : 240)}px` : '2px' }}
-                                        >
-                                            <span className="text-xs text-white font-medium transform -rotate-90 whitespace-nowrap hidden sm:block">
-                                                {maxValue > 0 && (Math.abs(item.difference) / maxValue) * 240 > 30 ? 
-                                                    `${item.difference >= 0 ? '+' : ''}${formatPrice(item.difference).replace('฿', '').replace(',', 'K').slice(0, -3)}K` : ''}
-                                            </span>
-                                        </div>
-                                        <div className={`text-xs mt-1 font-medium text-center ${
+                                    <div className="flex items-center space-x-2 sm:space-x-3">
+                                        <div className={`w-16 sm:w-20 text-xs sm:text-sm font-medium ${
                                             item.difference >= 0 ? 'text-red-600' : 'text-green-600'
                                         }`}>
-                                            <span className="hidden sm:inline">{item.difference >= 0 ? '+' : ''}{formatPrice(item.difference)}</span>
-                                            <span className="sm:hidden">{item.difference >= 0 ? '+' : ''}{formatPrice(item.difference).replace('฿', '').replace(',', 'K').slice(0, -3)}K</span>
+                                            ผลต่าง
+                                        </div>
+                                        <div className="flex-1 bg-gray-200 rounded-full h-4 sm:h-6 relative overflow-hidden">
+                                            <div 
+                                                className={`${item.difference >= 0 ? colors.differenceNegative : colors.difference} h-full rounded-full flex items-center justify-end pr-2 transition-all duration-500`}
+                                                style={{ width: maxValue > 0 ? `${(Math.abs(item.difference) / maxValue) * 100}%` : '1%' }}
+                                            >
+                                                <span className="text-xs text-white font-medium">
+                                                    {maxValue > 0 && (Math.abs(item.difference) / maxValue) * 100 > 15 ? 
+                                                        `${item.difference >= 0 ? '+' : ''}${formatPrice(item.difference)}` : ''}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className={`w-20 sm:w-24 text-xs sm:text-sm font-medium text-right ${
+                                            item.difference >= 0 ? 'text-red-600' : 'text-green-600'
+                                        }`}>
+                                            {item.difference >= 0 ? '+' : ''}{formatPrice(item.difference)}
                                         </div>
                                     </div>
                                 </div>
@@ -3010,7 +3023,7 @@
             if (!Array.isArray(data) || data.length === 0) {
                 return (
                     <div className="bg-white rounded-lg shadow-lg p-6">
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">ข้อมูลการใช้รถขนย้ายสินค้า</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">บันทึกงานย้ายสินค้า</h2>
                         <div className="text-center py-8">
                             <div className="text-gray-500 mb-4">ไม่พบข้อมูลรถขนย้าย</div>
                             <div className="text-sm text-gray-400">
@@ -3138,7 +3151,7 @@
             return (
                 <div className="bg-white rounded-lg shadow-lg p-3 sm:p-6">
                     <div className="mb-4 sm:mb-6">
-                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">ข้อมูลการใช้รถขนย้ายสินค้า</h2>
+                        <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">บันทึกงานย้ายสินค้า</h2>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4">
                             <input 
@@ -4459,9 +4472,9 @@
                                     <Icons name="bolt" className="w-6 h-6" />
                                     <span className="nav-text">ชาร์จไฟEV</span>
                                 </button>
-                                <button title="รถขนย้าย" className={`nav-button ${activeApp === 'transport' ? 'active' : ''}`} onClick={() => setActiveApp('transport')}>
-                                    <Icons name="truck" className="w-6 h-6" />
-                                    <span className="nav-text">รถขนย้าย</span>
+                                <button title="บันทึกงานย้าย" className={`nav-button ${activeApp === 'transport' ? 'active' : ''}`} onClick={() => setActiveApp('transport')}>
+                                    <Icons name="clipboard-list" className="w-6 h-6" />
+                                    <span className="nav-text">บันทึกงานย้าย</span>
                                 </button>
                                 <button title="เปรียบเทียบการใช้น้ำมัน" className={`nav-button ${activeApp === 'energy' ? 'active' : ''}`} onClick={() => setActiveApp('energy')}>
                                     <Icons name="balance" className="w-6 h-6" />

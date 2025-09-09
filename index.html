@@ -339,19 +339,28 @@
         const calculateTirePrice = (sparePartsString) => {
             if (!sparePartsString) return 0;
             const parts = String(sparePartsString).toLowerCase();
-            // ค้นหาคำว่า "ราคายาง" หรือ "ยาง" และดึงตัวเลขที่อยู่ข้างหลัง
-            const tireMatches = parts.match(/(?:ราคายาง|ยาง)\s*[:\-]?\s*([\d,\.]+)/g);
-            if (!tireMatches) return 0;
             
-            let total = 0;
-            tireMatches.forEach(match => {
-                const priceMatch = match.match(/([\d,\.]+)/);
-                if (priceMatch) {
-                    const price = parseFloat(priceMatch[1].replace(/,/g, ''));
-                    if (!isNaN(price)) total += price;
-                }
-            });
-            return total;
+            // ตรวจสอบว่ามีคำว่า "ยาง" ในรายการอะไหล่หรือไม่
+            if (!parts.includes('ยาง')) return 0;
+            
+            // ถ้ามีคำว่า "ยาง" ให้คำนวณราคาจากคอลัมน์ราคาอะไหล่ทั้งหมด
+            // เนื่องจากข้อมูลยางมักจะรวมอยู่ในราคาอะไหล่ทั้งหมด
+            return 0; // จะคำนวณจากฟังก์ชันอื่น
+        };
+        
+        const calculateTirePriceFromSparePartsPrice = (sparePartsString, sparePartsPrice) => {
+            if (!sparePartsString || !sparePartsPrice) return 0;
+            const parts = String(sparePartsString).toLowerCase();
+            
+            // ตรวจสอบว่ามีคำว่า "ยาง" ในรายการอะไหล่หรือไม่
+            if (!parts.includes('ยาง')) return 0;
+            
+            // คำนวณราคาอะไหล่ทั้งหมด
+            const totalSparePartsPrice = calculateTotalSparePartsPrice(sparePartsPrice);
+            
+            // ถ้ามีคำว่า "ยาง" ให้ถือว่าราคาทั้งหมดเป็นค่ายาง
+            // (อาจต้องปรับปรุงให้ละเอียดมากขึ้นในอนาคต)
+            return totalSparePartsPrice;
         };
         const calculateTotalCost = (item) => {
             const sparePartsPrice = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
@@ -1576,6 +1585,10 @@
         // ### REPAIR APP MAIN COMPONENT (คอมโพเนนต์หลักของแอปแจ้งซ่อม) ###
         // ##################################################################
         const RepairApp = ({ data, isMobile }) => {
+            // Debug: แสดงข้อมูลที่ได้รับใน RepairApp
+            console.log('RepairApp received data:', data);
+            console.log('RepairApp data length:', data ? data.length : 'undefined');
+            
             const [activeTab, setActiveTab] = useState('all');
             const tabConfig = [ 
                 { id: 'all', label: 'ข้อมูลทั้งหมด' }, 
@@ -2980,7 +2993,7 @@
         // ##################################################################
         // ### TRANSPORT APP COMPONENTS (START) ###
         // ##################################################################
-        const TransportApp = ({ data, repairData }) => {
+        const TransportApp = ({ data, repairData, fuelData }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [filterVehicle, setFilterVehicle] = useState('');
             const [filterStatus, setFilterStatus] = useState('');
@@ -2989,6 +3002,9 @@
             // Debug: แสดงข้อมูลที่ได้รับ
             console.log('TransportApp received data:', data);
             console.log('Data length:', data ? data.length : 'undefined');
+            console.log('TransportApp received repairData:', repairData);
+            console.log('RepairData length:', repairData ? repairData.length : 'undefined');
+            console.log('TransportApp received fuelData:', fuelData);
             
             // ตรวจสอบว่าข้อมูลเป็น array และมีข้อมูลจริง
             if (!Array.isArray(data) || data.length === 0) {
@@ -3043,6 +3059,61 @@
                     return repairData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
                 }
                 return 0;
+            }, [repairData]);
+            
+            // คำนวณค่าน้ำมันรวมจากข้อมูล FuelApp
+            const totalFuelCost = useMemo(() => {
+                console.log('FuelData received in TransportApp:', fuelData);
+                if (fuelData && fuelData.supply && fuelData.supply.length > 0) {
+                    const cost = fuelData.supply.reduce((sum, item) => {
+                        const price = parseFloat(item['ราคาน้ำมัน'] || 0);
+                        console.log('Fuel item:', item, 'price:', price);
+                        return sum + price;
+                    }, 0);
+                    console.log('Total fuel cost calculated:', cost);
+                    return cost;
+                } else if (fuelData && Array.isArray(fuelData) && fuelData.length > 0) {
+                    const cost = fuelData.reduce((sum, item) => {
+                        const price = parseFloat(item['ราคาน้ำมัน'] || 0);
+                        console.log('Fuel item:', item, 'price:', price);
+                        return sum + price;
+                    }, 0);
+                    console.log('Total fuel cost calculated:', cost);
+                    return cost;
+                }
+                console.log('No fuel data available');
+                return 0;
+            }, [fuelData]);
+            
+            // คำนวณค่ายางรวมจากข้อมูล RepairApp (ใช้ฟังก์ชัน calculateTirePrice ที่มีอยู่)
+            const totalTireCost = useMemo(() => {
+                console.log('=== TIRE COST CALCULATION DEBUG ===');
+                console.log('RepairData for tire calculation:', repairData);
+                console.log('RepairData type:', typeof repairData);
+                console.log('RepairData is array:', Array.isArray(repairData));
+                console.log('RepairData length:', repairData ? repairData.length : 'undefined');
+                
+                if (repairData && Array.isArray(repairData) && repairData.length > 0) {
+                     console.log('Processing repair data for tire costs...');
+                     const cost = repairData.reduce((sum, item, index) => {
+                         const spareParts = item['รายการอะไหล่ที่ต้องเปลี่ยน'] || '';
+                         const sparePartsPrice = item['ราคาอะไหล่'] || '';
+                         const tirePrice = calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                         console.log(`Item ${index + 1}:`, {
+                             spareParts: spareParts,
+                             sparePartsPrice: sparePartsPrice,
+                             tirePrice: tirePrice,
+                             runningSum: sum + tirePrice
+                         });
+                         return sum + tirePrice;
+                     }, 0);
+                    console.log('=== FINAL TIRE COST:', cost, '===');
+                    return cost;
+                } else {
+                    console.log('No valid repair data available for tire calculation');
+                    console.log('Reason: repairData is', repairData);
+                    return 0;
+                }
             }, [repairData]);
             
             const transportColumns = [
@@ -3104,7 +3175,7 @@
                     </div>
                     
                     {/* สถิติและการวิเคราะห์ */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
                         <div className="bg-blue-50 p-4 rounded-lg">
                             <h3 className="text-lg font-semibold text-blue-800 mb-2">น้ำหนักรวม</h3>
                             <p className="text-2xl font-bold text-blue-600">
@@ -3149,6 +3220,50 @@
                             </p>
                             <p className="text-xs text-orange-600 mt-1">
                                 *คำนวณจากข้อมูลค่าซ่อมรวม
+                            </p>
+                        </div>
+                        
+                        <div className="bg-purple-50 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold text-purple-800 mb-2">ค่าน้ำมันต่อตัน</h3>
+                            <p className="text-2xl font-bold text-purple-600">
+                                {(() => {
+                                    const totalWeight = filteredData.reduce((sum, item) => {
+                                        const weight = parseFloat(item['น้ำหนัก'] || item['น้ำหนัก (กก.)'] || 0);
+                                        return sum + weight;
+                                    }, 0) / 1000; // แปลงเป็นตัน
+                                    
+                                    const fuelCostPerTon = totalWeight > 0 ? totalFuelCost / totalWeight : 0;
+                                    
+                                    return fuelCostPerTon.toLocaleString('th-TH', {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    });
+                                })()} บาท/ตัน
+                            </p>
+                            <p className="text-xs text-purple-600 mt-1">
+                                *คำนวณจากข้อมูลค่าน้ำมันรวม
+                            </p>
+                        </div>
+                        
+                        <div className="bg-red-50 p-4 rounded-lg">
+                            <h3 className="text-lg font-semibold text-red-800 mb-2">ค่ายางต่อตัน</h3>
+                            <p className="text-2xl font-bold text-red-600">
+                                {(() => {
+                                    const totalWeight = filteredData.reduce((sum, item) => {
+                                        const weight = parseFloat(item['น้ำหนัก'] || item['น้ำหนัก (กก.)'] || 0);
+                                        return sum + weight;
+                                    }, 0) / 1000; // แปลงเป็นตัน
+                                    
+                                    const tireCostPerTon = totalWeight > 0 ? totalTireCost / totalWeight : 0;
+                                    
+                                    return tireCostPerTon.toLocaleString('th-TH', {
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0
+                                    });
+                                })()} บาท/ตัน
+                            </p>
+                            <p className="text-xs text-red-600 mt-1">
+                                *คำนวณจากข้อมูลค่ายางรวม
                             </p>
                         </div>
                     </div>
@@ -4246,6 +4361,11 @@
                     
                     const sheetJson = await sheetResponse.json();
                     
+                    // Debug: แสดงข้อมูลที่ได้จาก Google Sheets
+                    console.log('Sheet JSON Data:', sheetJson);
+                    console.log('Repair Data from Sheets:', sheetJson.repairData);
+                    console.log('Repair Data Length:', sheetJson.repairData ? sheetJson.repairData.length : 'undefined');
+                    
                     // Debug: แสดงข้อมูลที่ได้จาก CSV
                     console.log('Transport CSV Data:', transportData);
                     console.log('Transport Data Length:', transportData.length);
@@ -4286,7 +4406,7 @@
                     case 'ev':
                         return <EVChargingApp data={data.evData} />;
                     case 'transport':
-                        return <TransportApp data={data.transportData} repairData={data.repairData} />;
+                        return <TransportApp data={data.transportData} repairData={data.repairData} fuelData={data.fuelData} />;
                     case 'energy':
                         return <EnergyComparisonApp fuelData={data.fuelData} evData={data.evData} />;
                     case 'ev_impact':

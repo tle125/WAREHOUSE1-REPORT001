@@ -2980,7 +2980,7 @@
         // ##################################################################
         // ### TRANSPORT APP COMPONENTS (START) ###
         // ##################################################################
-        const TransportApp = ({ data }) => {
+        const TransportApp = ({ data, repairData }) => {
             const [searchTerm, setSearchTerm] = useState('');
             const [filterVehicle, setFilterVehicle] = useState('');
             const [filterStatus, setFilterStatus] = useState('');
@@ -3037,15 +3037,13 @@
                 });
             }, [data, searchTerm, filterVehicle, filterStatus, filterDate]);
             
-            // คำนวณค่าซ่อมรวมสำหรับการคำนวณต้นทุนต่อตัน
+            // คำนวณค่าซ่อมรวมจากข้อมูลจริงในระบบ RepairApp
             const totalCost = useMemo(() => {
-                // ใช้ข้อมูลค่าซ่อมจากระบบ RepairApp ถ้ามี หรือใช้ค่าประมาณการ
-                if (typeof repairData !== 'undefined' && repairData.length > 0) {
+                if (repairData && repairData.length > 0) {
                     return repairData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
                 }
-                // ค่าประมาณการเริ่มต้นสำหรับการคำนวณ
-                return 500000;
-            }, [typeof repairData !== 'undefined' ? repairData : []]);
+                return 0;
+            }, [repairData]);
             
             const transportColumns = [
                 { key: 'ลำดับที่', label: 'ลำดับ', render: (val, row, index) => index + 1 },
@@ -3139,8 +3137,8 @@
                                         return sum + weight;
                                     }, 0) / 1000; // แปลงเป็นตัน
                                     
-                                    // ใช้ข้อมูลค่าซ่อมจากระบบที่มีอยู่ (ประมาณการ)
-                                    const estimatedRepairCost = totalCost || 50000; // ใช้ totalCost หรือค่าเริ่มต้น
+                                    // ใช้ข้อมูลค่าซ่อมจากระบบจริง
+                                    const estimatedRepairCost = totalCost;
                                     const costPerTon = totalWeight > 0 ? estimatedRepairCost / totalWeight : 0;
                                     
                                     return costPerTon.toLocaleString('th-TH', {
@@ -3251,7 +3249,7 @@
                                         const totalRounds = filteredData.filter(item => item['เบอร์รถ'] && item['เบอร์รถ'].trim() !== '').length;
                                         
                                         const uniqueVehicles = [...new Set(filteredData.map(item => item['เบอร์รถ']).filter(v => v))];
-                                        const estimatedRepairCost = totalCost || 50000;
+                                        const estimatedRepairCost = totalCost;
                                         const weightInTons = totalWeight / 1000;
                                         const costPerTon = weightInTons > 0 ? estimatedRepairCost / weightInTons : 0;
                                         const avgWeightPerRound = totalRounds > 0 ? totalWeight / totalRounds : 0;
@@ -3261,7 +3259,7 @@
                                             { label: 'น้ำหนักรวมทั้งหมด', value: totalWeight.toLocaleString(), unit: 'กก.', note: `(${weightInTons.toFixed(2)} ตัน)` },
                                             { label: 'จำนวนรอบขนส่งรวม', value: totalRounds.toLocaleString(), unit: 'รอบ', note: '' },
                                             { label: 'จำนวนรถที่ใช้งาน', value: uniqueVehicles.length.toLocaleString(), unit: 'คัน', note: '' },
-                                            { label: 'ค่าซ่อมรวม (ประมาณการ)', value: estimatedRepairCost.toLocaleString(), unit: 'บาท', note: 'จากข้อมูลระบบซ่อม' },
+                                            { label: 'ค่าซ่อมรวม', value: estimatedRepairCost.toLocaleString(), unit: 'บาท', note: 'จากข้อมูลระบบซ่อม' },
                                             { label: 'ค่าซ่อมต่อตัน', value: costPerTon.toLocaleString('th-TH', {maximumFractionDigits: 0}), unit: 'บาท/ตัน', note: 'คำนวณจากค่าซ่อมรวม ÷ น้ำหนักรวม' },
                                             { label: 'น้ำหนักเฉลี่ยต่อรอบ', value: avgWeightPerRound.toLocaleString('th-TH', {maximumFractionDigits: 0}), unit: 'กก./รอบ', note: '' },
                                             { label: 'รอบเฉลี่ยต่อรถ', value: avgRoundsPerVehicle.toFixed(1), unit: 'รอบ/คัน', note: '' }
@@ -4288,7 +4286,7 @@
                     case 'ev':
                         return <EVChargingApp data={data.evData} />;
                     case 'transport':
-                        return <TransportApp data={data.transportData} />;
+                        return <TransportApp data={data.transportData} repairData={data.repairData} />;
                     case 'energy':
                         return <EnergyComparisonApp fuelData={data.fuelData} evData={data.evData} />;
                     case 'ev_impact':

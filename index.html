@@ -3011,6 +3011,11 @@
             const [filterVehicle, setFilterVehicle] = useState('');
             const [filterStatus, setFilterStatus] = useState('');
             const [filterDate, setFilterDate] = useState('');
+            const [viewMode, setViewMode] = useState('table'); // 'table', 'daily', 'monthly'
+            const [selectedMonth, setSelectedMonth] = useState('');
+            const [selectedVehicleType, setSelectedVehicleType] = useState('');
+            const [selectedDate, setSelectedDate] = useState('');
+            const [showCalendar, setShowCalendar] = useState(false);
             
             // Debug: แสดงข้อมูลที่ได้รับ
             console.log('TransportApp received data:', data);
@@ -3039,16 +3044,34 @@
                 );
             }
             
-            const { uniqueVehicles, uniqueStatuses } = useMemo(() => {
+            const { uniqueVehicles, uniqueStatuses, uniqueVehicleTypes, uniqueMonths } = useMemo(() => {
                 const vehicles = new Set();
                 const statuses = new Set();
+                const vehicleTypes = new Set();
+                const months = new Set();
+                
                 data.forEach(item => {
-                    if (item['เบอร์รถ']) vehicles.add(item['เบอร์รถ']);
+                    if (item['เบอร์รถ']) {
+                        vehicles.add(item['เบอร์รถ']);
+                        // Extract vehicle type from vehicle number (FL, TT, TTL)
+                        const vehicleNum = item['เบอร์รถ'];
+                        if (vehicleNum.includes('FL')) vehicleTypes.add('FL');
+                        else if (vehicleNum.includes('TTL')) vehicleTypes.add('TTL');
+                        else if (vehicleNum.includes('TT')) vehicleTypes.add('TT');
+                    }
                     if (item['สถานะ']) statuses.add(item['สถานะ']);
+                    if (item['วันที่']) {
+                        const date = item['วันที่'];
+                        const month = date.split('/')[1];
+                        if (month) months.add(month);
+                    }
                 });
+                
                 return {
                     uniqueVehicles: Array.from(vehicles).sort(),
-                    uniqueStatuses: Array.from(statuses).sort()
+                    uniqueStatuses: Array.from(statuses).sort(),
+                    uniqueVehicleTypes: Array.from(vehicleTypes).sort(),
+                    uniqueMonths: Array.from(months).sort((a, b) => parseInt(a) - parseInt(b))
                 };
             }, [data]);
             
@@ -3062,9 +3085,24 @@
                     const matchesDate = filterDate === '' || (item['วันที่'] && 
                         formatSimpleDate(item['วันที่']).includes(filterDate)
                     );
-                    return matchesSearch && matchesVehicle && matchesStatus && matchesDate;
+                    
+                    // กรองตามเดือน
+                    const matchesMonth = selectedMonth === '' || (item['วันที่'] && 
+                        item['วันที่'].split('/')[1] === selectedMonth
+                    );
+                    
+                    // กรองตามประเภทรถ
+                    const matchesVehicleType = selectedVehicleType === '' || (() => {
+                        const vehicleNum = item['เบอร์รถ'] || '';
+                        if (selectedVehicleType === 'FL') return vehicleNum.includes('FL');
+                        if (selectedVehicleType === 'TTL') return vehicleNum.includes('TTL');
+                        if (selectedVehicleType === 'TT') return vehicleNum.includes('TT') && !vehicleNum.includes('TTL');
+                        return false;
+                    })();
+                    
+                    return matchesSearch && matchesVehicle && matchesStatus && matchesDate && matchesMonth && matchesVehicleType;
                 });
-            }, [data, searchTerm, filterVehicle, filterStatus, filterDate]);
+            }, [data, searchTerm, filterVehicle, filterStatus, filterDate, selectedMonth, selectedVehicleType]);
             
             // คำนวณค่าซ่อมรวมจากข้อมูลจริงในระบบ RepairApp
             const totalCost = useMemo(() => {
@@ -3153,6 +3191,59 @@
                     <div className="mb-4 sm:mb-6">
                         <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">บันทึกงานย้ายสินค้า</h2>
                         
+                        {/* โหมดการแสดงผลและตัวเลือกใหม่ */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 mb-4 p-3 bg-blue-50 rounded-lg">
+                            <select 
+                                value={viewMode} 
+                                onChange={e => setViewMode(e.target.value)} 
+                                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white font-semibold"
+                            >
+                                <option value="table">📊 แสดงตาราง</option>
+                                <option value="daily">📅 บาท:ต้น:วัน</option>
+                                <option value="monthly">📈 บาท:ต้น:เดือน</option>
+                            </select>
+                            
+                            <select 
+                                value={selectedMonth} 
+                                onChange={e => setSelectedMonth(e.target.value)} 
+                                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                                <option value="">ทุกเดือน</option>
+                                {uniqueMonths.map(m => <option key={m} value={m}>เดือน {m}</option>)}
+                            </select>
+                            
+                            <select 
+                                value={selectedVehicleType} 
+                                onChange={e => setSelectedVehicleType(e.target.value)} 
+                                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                            >
+                                <option value="">ทุกประเภทรถ</option>
+                                {uniqueVehicleTypes.map(t => <option key={t} value={t}>🚛 {t}</option>)}
+                            </select>
+                        </div>
+                        
+                        {/* ปุ่มปฏิทินสำหรับโหมดรายวัน */}
+                        {viewMode === 'daily' && (
+                            <div className="mb-4 flex gap-2">
+                                <button 
+                                    onClick={() => setShowCalendar(!showCalendar)}
+                                    className={`px-4 py-2 rounded-md font-semibold transition-colors ${
+                                        showCalendar 
+                                            ? 'bg-green-600 text-white' 
+                                            : 'bg-green-500 text-white hover:bg-green-600'
+                                    }`}
+                                >
+                                    📅 {showCalendar ? 'ซ่อนปฏิทิน' : 'แสดงปฏิทิน'}
+                                </button>
+                                {selectedDate && (
+                                    <div className="px-3 py-2 bg-blue-100 text-blue-800 rounded-md font-semibold">
+                                        วันที่เลือก: {selectedDate}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        {/* ตัวกรองเดิม */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-4">
                             <input 
                                 type="text" 
@@ -3412,11 +3503,188 @@
                         </div>
                     </div>
                     
-                    <PaginatedDataTable
-                        title={`ข้อมูลการขนย้ายสินค้า (${filteredData.length} รายการ)`}
-                        data={filteredData}
-                        columns={transportColumns}
-                    />
+                    {/* ส่วนแสดงผลแบบปฏิทินสำหรับโหมดรายวัน */}
+                    {viewMode === 'daily' && showCalendar && (
+                        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">📅 ปฏิทินการขนย้ายสินค้า</h3>
+                            <div className="grid grid-cols-7 gap-1 mb-4">
+                                {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map(day => (
+                                    <div key={day} className="p-2 text-center font-semibold text-gray-600 bg-gray-100 rounded">
+                                        {day}
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-1">
+                                {(() => {
+                                    const today = new Date();
+                                    const year = today.getFullYear();
+                                    const month = selectedMonth ? parseInt(selectedMonth) - 1 : today.getMonth();
+                                    const firstDay = new Date(year, month, 1);
+                                    const lastDay = new Date(year, month + 1, 0);
+                                    const startDate = new Date(firstDay);
+                                    startDate.setDate(startDate.getDate() - firstDay.getDay());
+                                    
+                                    const days = [];
+                                    for (let i = 0; i < 42; i++) {
+                                        const currentDate = new Date(startDate);
+                                        currentDate.setDate(startDate.getDate() + i);
+                                        
+                                        const dateStr = `${currentDate.getDate().toString().padStart(2, '0')}/${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getFullYear()}`;
+                                        const dayData = filteredData.filter(item => item['วันที่'] === dateStr);
+                                        const totalWeight = dayData.reduce((sum, item) => sum + parseFloat(item['น้ำหนัก'] || 0), 0);
+                                        
+                                        const isCurrentMonth = currentDate.getMonth() === month;
+                                        const isToday = currentDate.toDateString() === today.toDateString();
+                                        const hasData = dayData.length > 0;
+                                        
+                                        days.push(
+                                            <div 
+                                                key={i}
+                                                onClick={() => setSelectedDate(dateStr)}
+                                                className={`p-2 text-center cursor-pointer rounded transition-colors ${
+                                                    isToday ? 'bg-blue-500 text-white font-bold' :
+                                                    selectedDate === dateStr ? 'bg-green-500 text-white' :
+                                                    hasData ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                                                    isCurrentMonth ? 'hover:bg-gray-100' : 'text-gray-400'
+                                                }`}
+                                            >
+                                                <div className="text-sm">{currentDate.getDate()}</div>
+                                                {hasData && (
+                                                    <div className="text-xs mt-1">
+                                                        {dayData.length} รอบ<br/>
+                                                        {(totalWeight/1000).toFixed(1)}ต.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+                                    return days;
+                                })()}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* ส่วนแสดงผลตามโหมดที่เลือก */}
+                    {viewMode === 'daily' && selectedDate && (
+                        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">📊 ข้อมูลวันที่ {selectedDate}</h3>
+                            {(() => {
+                                const dayData = filteredData.filter(item => item['วันที่'] === selectedDate);
+                                if (dayData.length === 0) {
+                                    return <div className="text-center py-8 text-gray-500">ไม่มีข้อมูลในวันที่เลือก</div>;
+                                }
+                                
+                                const totalWeight = dayData.reduce((sum, item) => sum + parseFloat(item['น้ำหนัก'] || 0), 0);
+                                const vehicleTypes = {};
+                                dayData.forEach(item => {
+                                    const vehicleNum = item['เบอร์รถ'] || '';
+                                    let type = 'อื่นๆ';
+                                    if (vehicleNum.includes('FL')) type = 'FL';
+                                    else if (vehicleNum.includes('TTL')) type = 'TTL';
+                                    else if (vehicleNum.includes('TT')) type = 'TT';
+                                    
+                                    if (!vehicleTypes[type]) vehicleTypes[type] = { count: 0, weight: 0 };
+                                    vehicleTypes[type].count++;
+                                    vehicleTypes[type].weight += parseFloat(item['น้ำหนัก'] || 0);
+                                });
+                                
+                                return (
+                                    <div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                            <div className="bg-blue-50 p-3 rounded">
+                                                <div className="text-sm text-blue-600">รอบขนส่งทั้งหมด</div>
+                                                <div className="text-xl font-bold text-blue-800">{dayData.length} รอบ</div>
+                                            </div>
+                                            <div className="bg-green-50 p-3 rounded">
+                                                <div className="text-sm text-green-600">น้ำหนักรวม</div>
+                                                <div className="text-xl font-bold text-green-800">{(totalWeight/1000).toFixed(2)} ตัน</div>
+                                            </div>
+                                            <div className="bg-purple-50 p-3 rounded">
+                                                <div className="text-sm text-purple-600">เฉลี่ยต่อรอบ</div>
+                                                <div className="text-xl font-bold text-purple-800">{(totalWeight/dayData.length/1000).toFixed(2)} ตัน</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mb-4">
+                                            <h4 className="font-semibold mb-2">สรุปตามประเภทรถ:</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                                                {Object.entries(vehicleTypes).map(([type, data]) => (
+                                                    <div key={type} className="bg-gray-50 p-2 rounded">
+                                                        <div className="font-semibold">{type}</div>
+                                                        <div className="text-sm text-gray-600">
+                                                            {data.count} รอบ | {(data.weight/1000).toFixed(1)} ตัน
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+                    
+                    {/* ส่วนแสดงผลโหมดรายเดือน */}
+                    {viewMode === 'monthly' && (
+                        <div className="bg-white rounded-lg shadow-lg p-4 mb-6">
+                            <h3 className="text-lg font-semibold text-gray-800 mb-4">📈 สรุปรายเดือน</h3>
+                            {(() => {
+                                const monthlyData = {};
+                                filteredData.forEach(item => {
+                                    const date = item['วันที่'];
+                                    if (date) {
+                                        const month = date.split('/')[1];
+                                        if (!monthlyData[month]) {
+                                            monthlyData[month] = { count: 0, weight: 0, vehicles: new Set() };
+                                        }
+                                        monthlyData[month].count++;
+                                        monthlyData[month].weight += parseFloat(item['น้ำหนัก'] || 0);
+                                        if (item['เบอร์รถ']) monthlyData[month].vehicles.add(item['เบอร์รถ']);
+                                    }
+                                });
+                                
+                                return (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {Object.entries(monthlyData)
+                                            .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                                            .map(([month, data]) => (
+                                                <div key={month} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                    <h4 className="font-semibold text-lg mb-2">เดือน {month}</h4>
+                                                    <div className="space-y-2 text-sm">
+                                                        <div className="flex justify-between">
+                                                            <span>รอบขนส่ง:</span>
+                                                            <span className="font-semibold">{data.count} รอบ</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span>น้ำหนักรวม:</span>
+                                                            <span className="font-semibold">{(data.weight/1000).toFixed(2)} ตัน</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span>จำนวนรถ:</span>
+                                                            <span className="font-semibold">{data.vehicles.size} คัน</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                            <span>เฉลี่ยต่อรอบ:</span>
+                                                            <span className="font-semibold">{(data.weight/data.count/1000).toFixed(2)} ตัน</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+                    
+                    {/* แสดงตารางเฉพาะเมื่อเลือกโหมดตาราง */}
+                    {viewMode === 'table' && (
+                        <PaginatedDataTable
+                            title={`ข้อมูลการขนย้ายสินค้า (${filteredData.length} รายการ)`}
+                            data={filteredData}
+                            columns={transportColumns}
+                        />
+                    )}
                 </div>
             );
         };

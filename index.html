@@ -352,14 +352,20 @@
             if (!sparePartsString || !sparePartsPrice) return 0;
             const parts = String(sparePartsString).toLowerCase();
             
-            // ตรวจสอบว่ามีคำว่า "ยาง" ในรายการอะไหล่หรือไม่
-            if (!parts.includes('ยาง')) return 0;
+            // ตรวจสอบว่ามีคำว่า "ราคายาง" ในรายการอะไหล่หรือไม่ (ไม่รวมท่อยาง, เหล็กรัดท่อยาง ฯลฯ)
+            if (!parts.includes('ราคายาง')) return 0;
             
             // คำนวณราคาอะไหล่ทั้งหมด
             const totalSparePartsPrice = calculateTotalSparePartsPrice(sparePartsPrice);
             
-            // ถ้ามีคำว่า "ยาง" ให้ถือว่าราคาทั้งหมดเป็นค่ายาง
-            // (อาจต้องปรับปรุงให้ละเอียดมากขึ้นในอนาคต)
+            console.log('TIRE PRICE CALCULATION:', {
+                spareParts: sparePartsString,
+                priceString: sparePartsPrice,
+                hasTirePrice: parts.includes('ราคายาง'),
+                calculatedPrice: totalSparePartsPrice
+            });
+            
+            // ถ้ามีคำว่า "ราคายาง" ให้ถือว่าราคาทั้งหมดเป็นค่ายาง
             return totalSparePartsPrice;
         };
         const calculateTotalCost = (item) => {
@@ -780,6 +786,11 @@
 
             // คำนวณราคายาง
             const tireCosts = useMemo(() => {
+                console.log('=== TIRE COSTS CALCULATION DEBUG ===');
+                console.log('Current Year:', currentYear);
+                console.log('Last Year:', lastYear);
+                console.log('Total repair data:', repairData.length);
+                
                 const currentYearTires = repairData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
                     return date && date.getFullYear() === currentYear;
@@ -790,17 +801,48 @@
                     return date && date.getFullYear() === lastYear;
                 });
 
-                const currentTotal = currentYearTires.reduce((sum, item) => {
+                console.log('Current year items:', currentYearTires.length);
+                console.log('Last year items:', lastYearTires.length);
+
+                const currentTotal = currentYearTires.reduce((sum, item, index) => {
                     const spareParts = item['รายการอะไหล่ที่ต้องเปลี่ยน'] || '';
                     const sparePartsPrice = item['ราคาอะไหล่'] || '';
-                    return sum + calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                    const tirePrice = calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                    
+                    if (tirePrice > 0) {
+                        console.log(`Current Year Item ${index + 1}:`, {
+                            date: item['วันที่แจ้งซ่อม(APP)'],
+                            spareParts: spareParts,
+                            sparePartsPrice: sparePartsPrice,
+                            tirePrice: tirePrice,
+                            runningSum: sum + tirePrice
+                        });
+                    }
+                    
+                    return sum + tirePrice;
                 }, 0);
                 
-                const lastTotal = lastYearTires.reduce((sum, item) => {
+                const lastTotal = lastYearTires.reduce((sum, item, index) => {
                     const spareParts = item['รายการอะไหล่ที่ต้องเปลี่ยน'] || '';
                     const sparePartsPrice = item['ราคาอะไหล่'] || '';
-                    return sum + calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                    const tirePrice = calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                    
+                    if (tirePrice > 0) {
+                        console.log(`Last Year Item ${index + 1}:`, {
+                            date: item['วันที่แจ้งซ่อม(APP)'],
+                            spareParts: spareParts,
+                            sparePartsPrice: sparePartsPrice,
+                            tirePrice: tirePrice,
+                            runningSum: sum + tirePrice
+                        });
+                    }
+                    
+                    return sum + tirePrice;
                 }, 0);
+                
+                console.log('=== FINAL TIRE COSTS ===');
+                console.log('Current Total:', currentTotal);
+                console.log('Last Total:', lastTotal);
                 
                 const difference = currentTotal - lastTotal;
                 const percentChange = lastTotal > 0 ? ((difference / lastTotal) * 100) : 0;

@@ -365,7 +365,12 @@
         const calculateTotalCost = (item) => {
             const sparePartsPrice = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
             const servicePrice = parseFloat(String(item['ราคา'])) || 0;
-            return sparePartsPrice + servicePrice;
+            
+            // หักราคายางออกจากราคาอะไหล่
+            const tirePrice = calculateTirePriceFromSparePartsPrice(item['รายการอะไหล่ที่ต้องเปลี่ยน'], item['ราคาอะไหล่']);
+            const sparePartsWithoutTire = sparePartsPrice - tirePrice;
+            
+            return sparePartsWithoutTire + servicePrice;
         };
         const sumDurations = (durations) => {
             if (!durations || durations.length === 0) return '00:00';
@@ -385,6 +390,12 @@
             const stats = {};
             data.forEach(item => {
                 const type = item['ประเภท'] || 'ไม่ระบุ';
+                
+                // กรองข้อมูลราคายางออก
+                if (type.toLowerCase().includes('ราคายาง')) {
+                    return;
+                }
+                
                 const cost = calculateTotalCost(item);
                 const vehicleNumber = item['เบอร์รถ'] || 'ไม่ระบุ';
 
@@ -740,40 +751,7 @@
                 return { currentTotal, lastTotal, difference, percentChange };
             }, [fuelData, currentYear, lastYear]);
 
-            // คำนวณราคายาง
-            const tireCosts = useMemo(() => {
-                const currentYearTires = repairData.filter(item => {
-                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isTire = item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
-                                  item['รายการซ่อม']?.toLowerCase().includes('ราคายาง');
-                    return date && date.getFullYear() === currentYear && isTire;
-                });
-                
-                const lastYearTires = repairData.filter(item => {
-                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    const isTire = item['ประเภท']?.toLowerCase().includes('ราคายาง') || 
-                                  item['รายการซ่อม']?.toLowerCase().includes('ราคายาง');
-                    return date && date.getFullYear() === lastYear && isTire;
-                });
 
-                // Debug: แสดงข้อมูลยางปี 2025
-                console.log('=== ข้อมูลยางปี 2025 ===');
-                console.log('จำนวนรายการ:', currentYearTires.length);
-                currentYearTires.forEach((item, index) => {
-                    const price = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
-                    console.log(`${index + 1}. เบอร์รถ: ${item['เบอร์รถ']}, ราคาอะไหล่: ${item['ราคาอะไหล่']}, คำนวณได้: ${price}`);
-                });
-                
-                const currentTotal = currentYearTires.reduce((sum, item) => sum + calculateTotalSparePartsPrice(item['ราคาอะไหล่']), 0);
-                const lastTotal = lastYearTires.reduce((sum, item) => sum + calculateTotalSparePartsPrice(item['ราคาอะไหล่']), 0);
-                
-                console.log('ผลรวมราคายางปี 2025:', currentTotal);
-                console.log('ผลรวมราคายางปี 2024:', lastTotal);
-                const difference = currentTotal - lastTotal;
-                const percentChange = lastTotal > 0 ? ((difference / lastTotal) * 100) : 0;
-
-                return { currentTotal, lastTotal, difference, percentChange };
-            }, [repairData, currentYear, lastYear]);
 
             // คำนวณค่าไฟฟ้ารถ EV
             const evCosts = useMemo(() => {
@@ -867,37 +845,7 @@
                             </div>
                         </div>
 
-                        {/* ราคายาง */}
-                        <div className="bg-white rounded-lg shadow-md p-6">
-                            <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-semibold text-gray-800">ราคายาง</h3>
-                                <Icons name="circle" className="w-8 h-8 text-gray-600" />
-                            </div>
-                            <div className="space-y-3">
-                                <div>
-                                    <p className="text-sm text-gray-600">ปี {currentYear}</p>
-                                    <p className="text-2xl font-bold text-gray-600">{formatPrice(tireCosts.currentTotal)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-gray-600">ปี {lastYear}</p>
-                                    <p className="text-lg text-gray-700">{formatPrice(tireCosts.lastTotal)}</p>
-                                </div>
-                                <div className="border-t pt-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600">ผลต่าง</span>
-                                        <span className={`font-semibold ${tireCosts.difference >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                            {tireCosts.difference >= 0 ? '+' : ''}{formatPrice(tireCosts.difference)}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between items-center mt-1">
-                                        <span className="text-sm text-gray-600">% เปลี่ยนแปลง</span>
-                                        <span className={`font-semibold ${tireCosts.percentChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                            {tireCosts.percentChange >= 0 ? '+' : ''}{tireCosts.percentChange.toFixed(1)}%
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+
 
                         {/* ค่าไฟฟ้ารถ EV */}
                         <div className="bg-white rounded-lg shadow-md p-6">
@@ -939,13 +887,13 @@
                             <div className="text-center">
                                 <p className="text-sm text-gray-600 mb-2">ปี {currentYear}</p>
                                 <p className="text-3xl font-bold text-blue-600">
-                                    {formatPrice(repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal)}
+                                    {formatPrice(repairCosts.currentTotal + fuelCosts.currentTotal + evCosts.currentTotal)}
                                 </p>
                             </div>
                             <div className="text-center">
                                 <p className="text-sm text-gray-600 mb-2">ปี {lastYear}</p>
                                 <p className="text-2xl font-semibold text-gray-700">
-                                    {formatPrice(repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal)}
+                                    {formatPrice(repairCosts.lastTotal + fuelCosts.lastTotal + evCosts.lastTotal)}
                                 </p>
                             </div>
                         </div>
@@ -954,26 +902,26 @@
                                 <div>
                                     <span className="text-sm text-gray-600">ผลต่างรวม: </span>
                                     <span className={`font-bold text-lg ${
-                                        (repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference) >= 0 
+                                        (repairCosts.difference + fuelCosts.difference + evCosts.difference) >= 0 
                                         ? 'text-red-600' : 'text-green-600'
                                     }`}>
-                                        {(repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference) >= 0 ? '+' : ''}
-                                        {formatPrice(repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference)}
+                                        {(repairCosts.difference + fuelCosts.difference + evCosts.difference) >= 0 ? '+' : ''}
+                                        {formatPrice(repairCosts.difference + fuelCosts.difference + evCosts.difference)}
                                     </span>
                                 </div>
                                 <div>
                                     <span className="text-sm text-gray-600">% เปลี่ยนแปลง</span>
                                     <span className={`font-semibold ${
                                         (() => {
-                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal;
-                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal;
+                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + evCosts.currentTotal;
+                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + evCosts.lastTotal;
                                             const percentChange = totalLast > 0 ? ((totalCurrent - totalLast) / totalLast) * 100 : 0;
                                             return percentChange >= 0 ? 'text-red-600' : 'text-green-600';
                                         })()
                                     }`}>
                                         {(() => {
-                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal;
-                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal;
+                                            const totalCurrent = repairCosts.currentTotal + fuelCosts.currentTotal + evCosts.currentTotal;
+                                            const totalLast = repairCosts.lastTotal + fuelCosts.lastTotal + evCosts.lastTotal;
                                             const percentChange = totalLast > 0 ? ((totalCurrent - totalLast) / totalLast) * 100 : 0;
                                             return (percentChange >= 0 ? '+' : '') + percentChange.toFixed(1) + '%';
                                         })()}
@@ -984,7 +932,7 @@
                         
                         {/* การคำนวณยอดเงินที่ประหยัดได้จนถึงสิ้นปี */}
                         {(() => {
-                            const totalDifference = repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference;
+                            const totalDifference = repairCosts.difference + fuelCosts.difference + evCosts.difference;
                             if (totalDifference < 0) { // ประหยัดได้ (ค่าลบ)
                                 const savedAmount = Math.abs(totalDifference);
                                 const today = new Date();
@@ -1057,12 +1005,7 @@
                                 last: fuelCosts.lastTotal,
                                 difference: fuelCosts.difference
                             },
-                            {
-                                category: "ราคายาง",
-                                current: tireCosts.currentTotal,
-                                last: tireCosts.lastTotal,
-                                difference: tireCosts.difference
-                            },
+
                             {
                                 category: "ค่าไฟฟ้ารถ EV",
                                 current: evCosts.currentTotal,

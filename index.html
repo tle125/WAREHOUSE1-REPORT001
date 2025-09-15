@@ -1141,24 +1141,19 @@
                     <td className="border-b border-gray-200 px-4 py-3 text-slate-700">{formatDate(item['วันที่แจ้งซ่อม(APP)'])}</td>
                     <td className="border-b border-gray-200 px-4 py-3 text-slate-700">{formatDate(item['ซ่อมเสร็จ(APP)'])}</td>
                     <td className="border-b border-gray-200 px-4 py-3 text-right text-slate-700">{formatPrice(calculateTotalSparePartsPrice(item['ราคาอะไหล่']))}</td>
-                    <td className="border-b border-gray-200 px-4 py-3 text-right text-slate-700">{formatPrice(item['ราคา'])}</td>
-                    <td className="border-b border-gray-200 px-4 py-3 text-right font-bold text-emerald-600">{formatPrice(totalCost)}</td>
                 </tr>
             );
         };
         const RepairCard = ({ item, index }) => {
-            const totalCost = calculateTotalCost(item);
             const sparePartsPrice = calculateTotalSparePartsPrice(item['ราคาอะไหล่']);
-            const servicePrice = parseFloat(String(item['ราคา'])) || 0;
             return (
                 <div className="mobile-card border border-gray-200 rounded-lg mb-4 p-4 bg-white shadow">
                     <div className="flex justify-between items-center mb-2">
                         <div className="font-semibold text-slate-800">#{index} - {item['เบอร์รถ']}</div>
-                        <div className="text-right"><div className="font-bold text-emerald-600">{formatPrice(totalCost)}</div><div className="text-xs text-gray-500">ต้นทุนรวม</div></div>
+                        <div className="text-right"><div className="font-bold text-emerald-600">{formatPrice(sparePartsPrice)}</div><div className="text-xs text-gray-500">ราคาซ่อม</div></div>
                     </div>
                     <div className="mb-2 text-sm"><div className="font-medium text-slate-700">{item['รายการซ่อม']}</div><div className="text-blue-600 font-medium">{item['ประเภท']}</div></div>
                     <div className="grid grid-cols-2 gap-1 text-xs text-gray-600 mb-2"><div>แจ้งซ่อม: {formatDate(item['วันที่แจ้งซ่อม(APP)'])}</div><div>ซ่อมเสร็จ: {formatDate(item['ซ่อมเสร็จ(APP)'])}</div></div>
-                    <div className="bg-gray-50 p-2 rounded text-xs"><div className="flex justify-between"><span>ราคาอะไหล่:</span> <span>{formatPrice(sparePartsPrice)}</span></div><div className="flex justify-between"><span>ราคาซ่อม:</span> <span>{formatPrice(servicePrice)}</span></div></div>
                 </div>
             );
         };
@@ -1176,7 +1171,7 @@
                     <div className={`month-content transition-all duration-300 ease-in-out overflow-hidden ${isExpanded ? 'max-h-[10000px] opacity-100' : 'max-h-0 opacity-50'}`}>
                         <div className="p-0 sm:p-0">
                             {isMobile ? (<div className="p-2">{group.items.map((item, idx) => <RepairCard key={item['ลำดับที่']} item={item} index={idx + 1}/>)}</div>) 
-                            : (<div className="overflow-x-auto"><table className="w-full border-collapse"><thead><tr className="bg-slate-100"><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ลำดับที่</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">เบอร์รถ</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">รายการซ่อม</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ประเภท</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">วันที่แจ้งซ่อม</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ซ่อมเสร็จ</th><th className="border-b-2 border-gray-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 uppercase tracking-wider">ราคาอะไหล่</th><th className="border-b-2 border-gray-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 uppercase tracking-wider">ราคาซ่อม</th><th className="border-b-2 border-gray-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 uppercase tracking-wider">ต้นทุนรวม</th></tr></thead><tbody>{group.items.map((item, idx) => <RepairTableRow key={item['ลำดับที่']} item={item} index={idx + 1}/>)}</tbody></table></div>)}
+                            : (<div className="overflow-x-auto"><table className="w-full border-collapse"><thead><tr className="bg-slate-100"><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ลำดับที่</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">เบอร์รถ</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">รายการซ่อม</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ประเภท</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">วันที่แจ้งซ่อม</th><th className="border-b-2 border-gray-200 px-4 py-3 text-left text-sm font-semibold text-slate-800 uppercase tracking-wider">ซ่อมเสร็จ</th><th className="border-b-2 border-gray-200 px-4 py-3 text-right text-sm font-semibold text-slate-800 uppercase tracking-wider">ราคาซ่อม</th></tr></thead><tbody>{group.items.map((item, idx) => <RepairTableRow key={item['ลำดับที่']} item={item} index={idx + 1}/>)}</tbody></table></div>)}
                         </div>
                     </div>
                 </div>

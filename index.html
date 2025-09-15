@@ -425,6 +425,12 @@
         const processVehicleData = (data) => {
             const stats = {};
             data.forEach(item => {
+                const type = item['ประเภท'] || 'ไม่ระบุ';
+                // กรองข้อมูลราคายางออก
+                if (type.toLowerCase().includes('ราคายาง')) {
+                    return;
+                }
+                
                 const vehicleNumber = item['เบอร์รถ'] || 'ไม่ระบุ';
                 if (vehicleNumber === 'ไม่ระบุ') return;
                 const cost = calculateTotalCost(item);
@@ -434,7 +440,6 @@
                 stats[vehicleNumber].count++;
                 stats[vehicleNumber].totalCost += cost;
                 stats[vehicleNumber].items.push(item);
-                const type = item['ประเภท'] || 'ไม่ระบุ';
                 stats[vehicleNumber].types[type] = (stats[vehicleNumber].types[type] || 0) + 1;
             });
             Object.keys(stats).forEach(vehicle => {

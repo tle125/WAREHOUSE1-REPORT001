@@ -981,6 +981,64 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        {/* การคำนวณยอดเงินที่ประหยัดได้จนถึงสิ้นปี */}
+                        {(() => {
+                            const totalDifference = repairCosts.difference + fuelCosts.difference + tireCosts.difference + evCosts.difference;
+                            if (totalDifference < 0) { // ประหยัดได้ (ค่าลบ)
+                                const savedAmount = Math.abs(totalDifference);
+                                const today = new Date();
+                                const endOfYear = new Date(today.getFullYear(), 11, 31); // 31 ธันวาคม
+                                const daysRemaining = Math.ceil((endOfYear - today) / (1000 * 60 * 60 * 24));
+                                const monthsRemaining = Math.ceil(daysRemaining / 30);
+                                
+                                const savedPerMonth = monthsRemaining > 0 ? savedAmount / monthsRemaining : 0;
+                                const savedPerDay = daysRemaining > 0 ? savedAmount / daysRemaining : 0;
+                                
+                                return (
+                                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <h4 className="text-lg font-semibold text-green-800 mb-3 flex items-center">
+                                            <span className="mr-2">💰</span>
+                                            การใช้เงินที่ประหยัดได้จนถึงสิ้นปี
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="text-center p-3 bg-white rounded border border-green-300">
+                                                <div className="text-sm text-green-600 mb-1">ยอดที่ประหยัดได้ทั้งหมด</div>
+                                                <div className="text-2xl font-bold text-green-800">{formatPrice(savedAmount)}</div>
+                                                <div className="text-xs text-green-600">บาท</div>
+                                            </div>
+                                            <div className="text-center p-3 bg-white rounded border border-green-300">
+                                                <div className="text-sm text-green-600 mb-1">ใช้ได้เดือนละ</div>
+                                                <div className="text-xl font-bold text-green-800">{formatPrice(savedPerMonth)}</div>
+                                                <div className="text-xs text-green-600">บาท/เดือน ({monthsRemaining} เดือน)</div>
+                                            </div>
+                                            <div className="text-center p-3 bg-white rounded border border-green-300">
+                                                <div className="text-sm text-green-600 mb-1">ใช้ได้วันละ</div>
+                                                <div className="text-xl font-bold text-green-800">{formatPrice(savedPerDay)}</div>
+                                                <div className="text-xs text-green-600">บาท/วัน ({daysRemaining} วัน)</div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 text-center text-sm text-green-700">
+                                            📅 คำนวณจากวันนี้ ({today.getDate()}/{today.getMonth() + 1}/{today.getFullYear() + 543}) ถึงสิ้นปี {today.getFullYear() + 543}
+                                        </div>
+                                    </div>
+                                );
+                            } else if (totalDifference > 0) { // เพิ่มขึ้น
+                                return (
+                                    <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <h4 className="text-lg font-semibold text-red-800 mb-2 flex items-center">
+                                            <span className="mr-2">📈</span>
+                                            ค่าใช้จ่ายเพิ่มขึ้น
+                                        </h4>
+                                        <div className="text-center">
+                                            <div className="text-2xl font-bold text-red-800">{formatPrice(totalDifference)}</div>
+                                            <div className="text-sm text-red-600">เพิ่มขึ้นจากปีที่แล้ว</div>
+                                        </div>
+                                    </div>
+                                );
+                            }
+                            return null;
+                        })()}
                     </div>
                     
                     {/* กราฟเปรียบเทียบค่าใช้จ่าย */}

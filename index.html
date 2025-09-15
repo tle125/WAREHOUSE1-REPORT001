@@ -778,6 +778,36 @@
                 return { currentTotal, lastTotal, difference, percentChange };
             }, [evData, currentYear, lastYear]);
 
+            // คำนวณราคายาง
+            const tireCosts = useMemo(() => {
+                const currentYearTires = repairData.filter(item => {
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
+                    return date && date.getFullYear() === currentYear;
+                });
+                
+                const lastYearTires = repairData.filter(item => {
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
+                    return date && date.getFullYear() === lastYear;
+                });
+
+                const currentTotal = currentYearTires.reduce((sum, item) => {
+                    const spareParts = item['รายการอะไหล่ที่ต้องเปลี่ยน'] || '';
+                    const sparePartsPrice = item['ราคาอะไหล่'] || '';
+                    return sum + calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                }, 0);
+                
+                const lastTotal = lastYearTires.reduce((sum, item) => {
+                    const spareParts = item['รายการอะไหล่ที่ต้องเปลี่ยน'] || '';
+                    const sparePartsPrice = item['ราคาอะไหล่'] || '';
+                    return sum + calculateTirePriceFromSparePartsPrice(spareParts, sparePartsPrice);
+                }, 0);
+                
+                const difference = currentTotal - lastTotal;
+                const percentChange = lastTotal > 0 ? ((difference / lastTotal) * 100) : 0;
+
+                return { currentTotal, lastTotal, difference, percentChange };
+            }, [repairData, currentYear, lastYear]);
+
             return (
                 <div className="space-y-6">
                     <div className="text-center mb-8">
@@ -852,6 +882,38 @@
 
 
 
+                        {/* ราคายาง */}
+                        <div className="bg-white rounded-lg shadow-md p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-lg font-semibold text-gray-800">ราคายาง</h3>
+                                <img src="https://img.icons8.com/?size=80&id=85784&format=png" alt="ยาง" className="w-8 h-8" />
+                            </div>
+                            <div className="space-y-3">
+                                <div>
+                                    <p className="text-sm text-gray-600">ปี {currentYear}</p>
+                                    <p className="text-2xl font-bold text-purple-600">{formatPrice(tireCosts.currentTotal)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-600">ปี {lastYear}</p>
+                                    <p className="text-lg text-gray-700">{formatPrice(tireCosts.lastTotal)}</p>
+                                </div>
+                                <div className="border-t pt-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-sm text-gray-600">ผลต่าง</span>
+                                        <span className={`font-semibold ${tireCosts.difference >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {tireCosts.difference >= 0 ? '+' : ''}{formatPrice(tireCosts.difference)}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-1">
+                                        <span className="text-sm text-gray-600">% เปลี่ยนแปลง</span>
+                                        <span className={`font-semibold ${tireCosts.percentChange >= 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                            {tireCosts.percentChange >= 0 ? '+' : ''}{tireCosts.percentChange.toFixed(1)}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* ค่าไฟฟ้ารถ EV */}
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <div className="flex items-center justify-between mb-4">
@@ -892,13 +954,13 @@
                             <div className="text-center">
                                 <p className="text-sm text-gray-600 mb-2">ปี {currentYear}</p>
                                 <p className="text-3xl font-bold text-blue-600">
-                                    {formatPrice(repairCosts.currentTotal + fuelCosts.currentTotal + evCosts.currentTotal)}
+                                    {formatPrice(repairCosts.currentTotal + fuelCosts.currentTotal + tireCosts.currentTotal + evCosts.currentTotal)}
                                 </p>
                             </div>
                             <div className="text-center">
                                 <p className="text-sm text-gray-600 mb-2">ปี {lastYear}</p>
                                 <p className="text-2xl font-semibold text-gray-700">
-                                    {formatPrice(repairCosts.lastTotal + fuelCosts.lastTotal + evCosts.lastTotal)}
+                                    {formatPrice(repairCosts.lastTotal + fuelCosts.lastTotal + tireCosts.lastTotal + evCosts.lastTotal)}
                                 </p>
                             </div>
                         </div>

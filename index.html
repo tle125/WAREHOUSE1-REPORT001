@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -115,112 +114,68 @@
             margin-top: 2px;
         }
         
-        /* Floating Menu Styles */
-        .nav-floating-menu {
+        /* More Menu Dropdown Styles */
+        .more-menu-container {
             position: relative;
             display: inline-block;
-            margin-left: 10px;
         }
         
-        .menu-checkbox {
-            width: 60px;
-            height: 60px;
-            opacity: 0;
-            z-index: 10;
-            cursor: pointer;
+        .more-button {
             position: relative;
         }
         
-        .button-menu {
-            cursor: pointer;
+        .more-dropdown {
             position: absolute;
-            z-index: 1;
-            background-color: #ffdd00;
-            border: 2px solid #1e1e1e;
-            color: #1e1e1e;
-            font-size: 30px;
-            font-weight: 700;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            -webkit-box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            -moz-box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            top: 0;
-            left: 0;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            padding: 8px 0;
+            margin-bottom: 8px;
+            min-width: 200px;
+            z-index: 1000;
+            border: 1px solid rgba(0, 0, 0, 0.1);
         }
         
-        .menu-option {
+        .more-dropdown::before {
+            content: '';
             position: absolute;
-            background-color: #1e1e1e;
-            border: 2px solid #ffdd00;
-            color: #ffdd00;
-            z-index: -1;
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.3s;
-            -webkit-box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            -moz-box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: white;
+        }
+        
+        .dropdown-item {
+            width: 100%;
+            padding: 12px 16px;
+            background: none;
+            border: none;
             display: flex;
-            justify-content: center;
             align-items: center;
-            font-size: 12px;
-            text-align: center;
-            top: 2.5px;
-            left: 2.5px;
+            gap: 12px;
+            color: #374151;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
         }
         
-        .menu-checkbox:hover ~ .button-menu,
-        .menu-checkbox:checked ~ .button-menu {
-            background-color: #eccd00;
-            scale: 0.98;
-            box-shadow: none;
+        .dropdown-item:hover {
+            background-color: #f3f4f6;
         }
         
-        .menu-checkbox:not(:checked) ~ .button-menu::before {
-            content: "+";
+        .dropdown-item.active {
+            background-color: #dbeafe;
+            color: #1d4ed8;
         }
         
-        .menu-checkbox:checked ~ .button-menu::after {
-            content: "-";
-            scale: 0.98;
-            box-shadow: none;
+        .dropdown-item span {
+            flex: 1;
+            text-align: left;
         }
-        
-        .menu-checkbox:not(:checked) ~ .menu-option {
-            box-shadow: none;
-        }
-        
-        .menu-option:hover,
-        .menu-option:active,
-        .menu-option:focus {
-            box-shadow: none;
-            scale: 0.98;
-        }
-        
-        .menu-checkbox:checked ~ .option-a {
-            transition-delay: 0.1s;
-            transform: translateY(-90px);
-        }
-        
-        .menu-checkbox:checked ~ .option-b {
-            transition-delay: 0.2s;
-            transform: translateY(-65px) translateX(-65px);
-        }
-        
-        .menu-checkbox:checked ~ .option-c {
-            transition-delay: 0.3s;
-            transform: translateX(-90px);
-        }
-
 
         @keyframes spin_357 {
           from {
@@ -334,7 +289,25 @@
                 backdrop-filter: blur(10px); /* Glass effect */
             }
             
-
+            /* Mobile dropdown adjustments */
+            .more-menu-container {
+                flex: 1;
+            }
+            
+            .more-dropdown {
+                bottom: calc(100% + 10px);
+                left: 50%;
+                transform: translateX(-50%);
+                min-width: 250px;
+                max-height: 300px;
+                overflow-y: auto;
+            }
+            
+            .dropdown-item {
+                padding: 16px 20px;
+                font-size: 16px;
+                gap: 16px;
+            }
             
             .dropdown-item:first-child {
                 border-top-left-radius: 12px;
@@ -364,114 +337,6 @@
                 height: 20px;
             }
         }
-
-        /* Floating Menu Styles */
-        .floating-menu-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-
-        .menu-checkbox {
-            width: 50px;
-            height: 50px;
-            opacity: 0;
-            z-index: 10;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .button-menu {
-            cursor: pointer;
-            position: absolute;
-            top: 0;
-            left: 0;
-            z-index: 1;
-            background-color: #ffdd00;
-            border: 2px solid #1e1e1e;
-            color: #1e1e1e;
-            font-size: 20px;
-            font-weight: 700;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            -webkit-box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            -moz-box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            box-shadow: 0px 3px 10px 0px rgba(16, 16, 16, 0.5);
-        }
-
-        .menu-option {
-            position: absolute;
-            background-color: #1e1e1e;
-            border: 2px solid #ffdd00;
-            color: #ffdd00;
-            z-index: -1;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-weight: 700;
-            transition: all 0.3s;
-            -webkit-box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            -moz-box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            box-shadow: 3px 3px 10px 0px rgba(16, 16, 16, 0.5);
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 2px;
-            top: 2.5px;
-            left: 2.5px;
-        }
-
-        .menu-checkbox:hover ~ .button-menu,
-        .menu-checkbox:checked ~ .button-menu {
-            background-color: #eccd00;
-            scale: 0.98;
-            box-shadow: none;
-        }
-
-        .menu-checkbox:not(:checked) ~ .button-menu::before {
-            content: "+";
-        }
-
-        .menu-checkbox:checked ~ .button-menu::after {
-            content: "-";
-            scale: 0.98;
-            box-shadow: none;
-        }
-
-        .menu-checkbox:not(:checked) ~ .menu-option {
-            box-shadow: none;
-        }
-
-        .menu-option:hover,
-        .menu-option:active,
-        .menu-option:focus {
-            box-shadow: none;
-            scale: 0.98;
-        }
-
-        .menu-checkbox:checked ~ .option-a {
-            transition-delay: 0.1s;
-            transform: translateY(-70px);
-        }
-
-        .menu-checkbox:checked ~ .option-b {
-            transition-delay: 0.2s;
-            transform: translateY(-50px) translateX(50px);
-        }
-
-        .menu-checkbox:checked ~ .option-c {
-            transition-delay: 0.3s;
-            transform: translateX(70px);
-        }
     </style>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="importmap">
@@ -498,7 +363,7 @@
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        import React, { useState, useEffect, useMemo, useCallback } from 'react';
+        import React, { useState, useEffect, useMemo } from 'react';
         import ReactDOM from 'react-dom/client';
 
         // ##################################################################
@@ -4913,12 +4778,25 @@
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+            const [showMoreMenu, setShowMoreMenu] = useState(false);
 
             useEffect(() => {
                 const handleResize = () => setIsMobile(window.innerWidth < 768);
                 window.addEventListener('resize', handleResize);
                 return () => window.removeEventListener('resize', handleResize);
             }, []);
+            
+            // Close dropdown when clicking outside
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (showMoreMenu && !event.target.closest('.more-menu-container')) {
+                        setShowMoreMenu(false);
+                    }
+                };
+                
+                document.addEventListener('click', handleClickOutside);
+                return () => document.removeEventListener('click', handleClickOutside);
+            }, [showMoreMenu]);
 
             // ฟังก์ชันสำหรับดึงข้อมูลรถขนย้ายจาก Google Sheets CSV
             const fetchTransportDataFromCSV = async () => {
@@ -5129,52 +5007,62 @@
                                     <span className="nav-text">ภาพรวม</span>
                                 </button>
                                 
-                                {/* Floating Menu in Navigation */}
-                                <div className="nav-floating-menu">
-                                    <input 
-                                        className="menu-checkbox" 
-                                        type="checkbox" 
-                                    />
-                                    <span className="button-menu"></span>
+                                {/* More Menu Dropdown */}
+                                <div className="more-menu-container">
                                     <button 
-                                        className="menu-option option-a"
-                                        title="เปรียบเทียบการใช้น้ำมัน"
-                                        onClick={() => {
-                                            setActiveApp('fuel');
-                                            document.querySelector('.menu-checkbox').checked = false;
-                                        }}
+                                        title="เพิ่มเติม" 
+                                        className={`nav-button more-button ${['energy', 'ev_impact', 'breakeven'].includes(activeApp) ? 'active' : ''}`} 
+                                        onClick={() => setShowMoreMenu(!showMoreMenu)}
                                     >
-                                        ⚖️
+                                        <Icons name="dots-horizontal" className="w-6 h-6" />
+                                        <span className="nav-text">เพิ่มเติม</span>
+                                        <Icons name={showMoreMenu ? "chevron-up" : "chevron-down"} className="w-4 h-4 ml-1" />
                                     </button>
-                                    <button 
-                                        className="menu-option option-b"
-                                        title="แนวโน้มการใช้น้ำมัน"
-                                        onClick={() => {
-                                            setActiveApp('ev_impact');
-                                            document.querySelector('.menu-checkbox').checked = false;
-                                        }}
-                                    >
-                                        📈
-                                    </button>
-                                    <button 
-                                        className="menu-option option-c"
-                                        title="จุดคุ้มทุน EV"
-                                        onClick={() => {
-                                            setActiveApp('breakeven');
-                                            document.querySelector('.menu-checkbox').checked = false;
-                                        }}
-                                    >
-                                        🧮
-                                    </button>
+                                    
+                                    {showMoreMenu && (
+                                        <div className="more-dropdown">
+                                            <button 
+                                                title="เปรียบเทียบการใช้น้ำมัน" 
+                                                className={`dropdown-item ${activeApp === 'energy' ? 'active' : ''}`} 
+                                                onClick={() => {
+                                                    setActiveApp('energy');
+                                                    setShowMoreMenu(false);
+                                                }}
+                                            >
+                                                <Icons name="balance" className="w-5 h-5" />
+                                                <span>เปรียบเทียบการใช้น้ำมัน</span>
+                                            </button>
+                                            <button 
+                                                title="แนวโน้มการใช้น้ำมัน" 
+                                                className={`dropdown-item ${activeApp === 'ev_impact' ? 'active' : ''}`} 
+                                                onClick={() => {
+                                                    setActiveApp('ev_impact');
+                                                    setShowMoreMenu(false);
+                                                }}
+                                            >
+                                                <dotlottie-wc src="https://lottie.host/ddc40909-2718-4242-927f-e3fda3ac77ca/L8DWV25LrA.lottie" style={{width: '20px', height: '20px'}} speed="1" autoplay loop></dotlottie-wc>
+                                                <span>แนวโน้มการใช้น้ำมัน</span>
+                                            </button>
+                                            <button 
+                                                title="จุดคุ้มทุน EV" 
+                                                className={`dropdown-item ${activeApp === 'breakeven' ? 'active' : ''}`} 
+                                                onClick={() => {
+                                                    setActiveApp('breakeven');
+                                                    setShowMoreMenu(false);
+                                                }}
+                                            >
+                                                <Icons name="calculator" className="w-5 h-5" />
+                                                <span>จุดคุ้มทุน EV</span>
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-
                             </div>
                         </nav>
                     </header>
                     <main>
                         {renderActiveApp()}
                     </main>
-
                 </div>
             );
         };
@@ -5183,43 +5071,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<React.StrictMode><App /></React.StrictMode>);
     </script>
-<!-- Code injected by live-server -->
-<script>
-	// <![CDATA[  <-- For SVG support
-	if ('WebSocket' in window) {
-		(function () {
-			function refreshCSS() {
-				var sheets = [].slice.call(document.getElementsByTagName("link"));
-				var head = document.getElementsByTagName("head")[0];
-				for (var i = 0; i < sheets.length; ++i) {
-					var elem = sheets[i];
-					var parent = elem.parentElement || head;
-					parent.removeChild(elem);
-					var rel = elem.rel;
-					if (elem.href && typeof rel != "string" || rel.length == 0 || rel.toLowerCase() == "stylesheet") {
-						var url = elem.href.replace(/(&|\?)_cacheOverride=\d+/, '');
-						elem.href = url + (url.indexOf('?') >= 0 ? '&' : '?') + '_cacheOverride=' + (new Date().valueOf());
-					}
-					parent.appendChild(elem);
-				}
-			}
-			var protocol = window.location.protocol === 'http:' ? 'ws://' : 'wss://';
-			var address = protocol + window.location.host + window.location.pathname + '/ws';
-			var socket = new WebSocket(address);
-			socket.onmessage = function (msg) {
-				if (msg.data == 'reload') window.location.reload();
-				else if (msg.data == 'refreshcss') refreshCSS();
-			};
-			if (sessionStorage && !sessionStorage.getItem('IsThisFirstTime_Log_From_LiveServer')) {
-				console.log('Live reload enabled.');
-				sessionStorage.setItem('IsThisFirstTime_Log_From_LiveServer', true);
-			}
-		})();
-	}
-	else {
-		console.error('Upgrade your browser. This Browser is NOT supported WebSocket for Live-Reloading.');
-	}
-	// ]]>
-</script>
 </body>
 </html>

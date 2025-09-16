@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -4952,16 +4951,16 @@
                                     <Icons name="clipboard-list" className="w-6 h-6" />
                                     <span className="nav-text">บันทึกงานย้าย</span>
                                 </button>
-                                <button title="เปรียบเทียบการใช้น้ำมัน" className={`nav-button ${activeApp === 'energy' ? 'active' : ''}`} onClick={() => setActiveApp('energy')}>
-                                    <Icons name="balance" className="w-6 h-6" />
-                                    <span className="nav-text">เปรียบเทียบ</span>
+                                <button title="ภาพรวม" className={`nav-button ${activeApp === 'overview' ? 'active' : ''}`} onClick={() => setActiveApp('overview')}>
+                                    <Icons name="grid" className="w-6 h-6" />
+                                    <span className="nav-text">ภาพรวม</span>
                                 </button>
                                 
                                 {/* More Menu Dropdown */}
                                 <div className="more-menu-container">
                                     <button 
                                         title="เพิ่มเติม" 
-                                        className={`nav-button more-button ${['ev_impact', 'breakeven', 'overview'].includes(activeApp) ? 'active' : ''}`} 
+                                        className={`nav-button more-button ${['energy', 'ev_impact', 'breakeven'].includes(activeApp) ? 'active' : ''}`} 
                                         onClick={() => setShowMoreMenu(!showMoreMenu)}
                                     >
                                         <Icons name="dots-horizontal" className="w-6 h-6" />
@@ -4972,7 +4971,18 @@
                                     {showMoreMenu && (
                                         <div className="more-dropdown">
                                             <button 
-                                                title="ผลการประหยัด EV" 
+                                                title="เปรียบเทียบการใช้น้ำมัน" 
+                                                className={`dropdown-item ${activeApp === 'energy' ? 'active' : ''}`} 
+                                                onClick={() => {
+                                                    setActiveApp('energy');
+                                                    setShowMoreMenu(false);
+                                                }}
+                                            >
+                                                <Icons name="balance" className="w-5 h-5" />
+                                                <span>เปรียบเทียบการใช้น้ำมัน</span>
+                                            </button>
+                                            <button 
+                                                title="แนวโน้มการใช้น้ำมัน" 
                                                 className={`dropdown-item ${activeApp === 'ev_impact' ? 'active' : ''}`} 
                                                 onClick={() => {
                                                     setActiveApp('ev_impact');
@@ -4992,17 +5002,6 @@
                                             >
                                                 <Icons name="calculator" className="w-5 h-5" />
                                                 <span>จุดคุ้มทุน EV</span>
-                                            </button>
-                                            <button 
-                                                title="ภาพรวม" 
-                                                className={`dropdown-item ${activeApp === 'overview' ? 'active' : ''}`} 
-                                                onClick={() => {
-                                                    setActiveApp('overview');
-                                                    setShowMoreMenu(false);
-                                                }}
-                                            >
-                                                <Icons name="grid" className="w-5 h-5" />
-                                                <span>ภาพรวม</span>
                                             </button>
                                         </div>
                                     )}

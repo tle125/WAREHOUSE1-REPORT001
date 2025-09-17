@@ -597,7 +597,26 @@
         // ##################################################################
         const Icons = ({ name, className = "w-6 h-6" }) => {
             const iconPaths = {
-                toolbox: <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 9.75v2.25-2.25H2.25v2.25-2.25H21.75zM2.25 9.75v9.75a2.25 2.25 0 0 0 2.25 2.25h15a2.25 2.25 0 0 0 2.25-2.25V9.75m-19.5 0v-2.25a2.25 2.25 0 0 1 2.25-2.25h15a2.25 2.25 0 0 1 2.25 2.25v2.25m-15-4.5-3 3m15 0-3-3" />,
+                toolbox: (
+                    <g>
+                        {/* ไขควง */}
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3l6 6" fill="none" stroke="currentColor"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 8l13 13" fill="none" stroke="currentColor"/>
+                        <rect x="2" y="2" width="2" height="8" rx="1" fill="#87CEEB" stroke="currentColor" strokeWidth="1"/>
+                        <rect x="7" y="7" width="3" height="3" rx="1" fill="#FFFFFF" stroke="currentColor" strokeWidth="1"/>
+                        <rect x="19" y="19" width="3" height="3" rx="1" fill="#FF6B47" stroke="currentColor" strokeWidth="1"/>
+                        
+                        {/* ประแจ */}
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 3l-6 6" fill="none" stroke="currentColor"/>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 8l-13 13" fill="none" stroke="currentColor"/>
+                        <circle cx="20" cy="4" r="2" fill="#87CEEB" stroke="currentColor" strokeWidth="1"/>
+                        <circle cx="16" cy="8" r="1.5" fill="#87CEEB" stroke="currentColor" strokeWidth="1"/>
+                        <circle cx="4" cy="20" r="2" fill="#87CEEB" stroke="currentColor" strokeWidth="1"/>
+                        
+                        {/* จุดตัดกลาง */}
+                        <circle cx="12" cy="12" r="2" fill="#FFFFFF" stroke="currentColor" strokeWidth="2"/>
+                    </g>
+                ),
                 bolt: <path strokeLinecap="round" strokeLinejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z" />,
                 chevronDown: <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />,
                 up: <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 10.5L12 3l7.5 7.5" />,
@@ -1072,7 +1091,60 @@
                         <div className="bg-white rounded-lg shadow-md p-6">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-semibold text-gray-800">ราคายาง</h3>
-                                <img src="https://img.icons8.com/?size=80&id=85784&format=png" alt="ยาง" className="w-8 h-8" />
+                                <svg className="w-8 h-8" viewBox="0 0 512 512">
+                                    {/* ยางนอก */}
+                                    <circle cx="256" cy="256" r="240" fill="#000000" stroke="#000000" strokeWidth="8"/>
+                                    
+                                    {/* ลายยาง */}
+                                    <g stroke="#000000" strokeWidth="6" fill="none">
+                                        <rect x="40" y="250" width="20" height="12" rx="2"/>
+                                        <rect x="70" y="180" width="20" height="12" rx="2" transform="rotate(30 80 186)"/>
+                                        <rect x="120" y="120" width="20" height="12" rx="2" transform="rotate(60 130 126)"/>
+                                        <rect x="190" y="80" width="20" height="12" rx="2" transform="rotate(90 200 86)"/>
+                                        <rect x="250" y="60" width="20" height="12" rx="2"/>
+                                        <rect x="310" y="80" width="20" height="12" rx="2" transform="rotate(90 320 86)"/>
+                                        <rect x="380" y="120" width="20" height="12" rx="2" transform="rotate(60 390 126)"/>
+                                        <rect x="430" y="180" width="20" height="12" rx="2" transform="rotate(30 440 186)"/>
+                                        <rect x="452" y="250" width="20" height="12" rx="2"/>
+                                        <rect x="430" y="320" width="20" height="12" rx="2" transform="rotate(-30 440 326)"/>
+                                        <rect x="380" y="380" width="20" height="12" rx="2" transform="rotate(-60 390 386)"/>
+                                        <rect x="310" y="420" width="20" height="12" rx="2" transform="rotate(-90 320 426)"/>
+                                        <rect x="250" y="440" width="20" height="12" rx="2"/>
+                                        <rect x="190" y="420" width="20" height="12" rx="2" transform="rotate(-90 200 426)"/>
+                                        <rect x="120" y="380" width="20" height="12" rx="2" transform="rotate(-60 130 386)"/>
+                                        <rect x="70" y="320" width="20" height="12" rx="2" transform="rotate(-30 80 326)"/>
+                                    </g>
+                                    
+                                    {/* ขอบยางใน */}
+                                    <circle cx="256" cy="256" r="180" fill="#7C7CE0" stroke="#5A5ACF" strokeWidth="4"/>
+                                    
+                                    {/* ล้อ */}
+                                    <circle cx="256" cy="256" r="140" fill="#A8E6CF" stroke="#000000" strokeWidth="6"/>
+                                    
+                                    {/* ซี่ล้อ */}
+                                    <g fill="#FFFFFF" stroke="#000000" strokeWidth="4">
+                                        {/* ซี่ล้อบน */}
+                                        <path d="M 220 140 Q 256 120 292 140 Q 280 180 256 200 Q 232 180 220 140 Z"/>
+                                        {/* ซี่ล้อขวาบน */}
+                                        <path d="M 372 220 Q 392 256 372 292 Q 332 280 312 256 Q 332 232 372 220 Z"/>
+                                        {/* ซี่ล้อขวาล่าง */}
+                                        <path d="M 292 372 Q 256 392 220 372 Q 232 332 256 312 Q 280 332 292 372 Z"/>
+                                        {/* ซี่ล้อซ้ายล่าง */}
+                                        <path d="M 140 292 Q 120 256 140 220 Q 180 232 200 256 Q 180 280 140 292 Z"/>
+                                        {/* ซี่ล้อตรงกลาง */}
+                                        <path d="M 200 200 Q 256 180 312 200 Q 312 256 312 312 Q 256 332 200 312 Q 200 256 200 200 Z"/>
+                                    </g>
+                                    
+                                    {/* จุดตกแต่ง */}
+                                    <circle cx="256" cy="180" r="6" fill="#000000"/>
+                                    <circle cx="332" cy="256" r="6" fill="#000000"/>
+                                    <circle cx="256" cy="332" r="6" fill="#000000"/>
+                                    <circle cx="180" cy="256" r="6" fill="#000000"/>
+                                    
+                                    {/* ศูนย์กลางล้อ */}
+                                    <circle cx="256" cy="256" r="25" fill="#5A5ACF" stroke="#000000" strokeWidth="4"/>
+                                    <circle cx="256" cy="256" r="12" fill="#000000"/>
+                                </svg>
                             </div>
                             <div className="space-y-3">
                                 <div>

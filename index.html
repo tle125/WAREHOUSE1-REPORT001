@@ -1588,6 +1588,28 @@
                 </div>
             );
         };
+        
+        // SparePartsList Component (Global)
+        const SparePartsList = ({ item }) => {
+            const parts = item['รายการอะไหล่ที่ต้องเปลี่ยน']?.split(/[+,]/).map(p => p.trim()).filter(Boolean) || [];
+            const prices = String(item['ราคาอะไหล่'] || '').split(/[,;|+]/).map(p => p.trim()).filter(Boolean);
+
+            if (parts.length === 0 && prices.length === 0) {
+                return <span className="text-slate-500">-</span>;
+            }
+
+            return (
+                <div className="space-y-1 text-xs">
+                    {parts.map((part, index) => (
+                        <div key={index} className="flex justify-between items-center">
+                            <span className="text-slate-700">{part}</span>
+                            <span className="font-medium text-slate-800">{formatPrice(prices[index] || 0)}</span>
+                        </div>
+                    ))}
+                </div>
+            );
+        };
+        
         const VehicleTab = ({ data, isMobile }) => {
             const [period, setPeriod] = useState('all');
             const [sortBy, setSortBy] = useState('plate_asc');
@@ -1652,26 +1674,6 @@
             const countChartData = [...sortedVehicles].sort(([,a],[,b])=>b.count - a.count).slice(0, 10).map(([vehicle, stats]) => ({ label: vehicle, value: stats.count, displayValue: `${stats.count} ครั้ง` }));
             const priceChartData = [...sortedVehicles].sort(([,a],[,b])=>b.totalCost - a.totalCost).slice(0, 10).map(([vehicle, stats]) => ({ label: vehicle, value: stats.totalCost, displayValue: formatPrice(stats.totalCost) }));
             const toggleVehicle = (vehicle) => setExpandedVehicles(prev => { const newSet = new Set(prev); if (newSet.has(vehicle)) newSet.delete(vehicle); else newSet.add(vehicle); return newSet; });
-
-            const SparePartsList = ({ item }) => {
-                const parts = item['รายการอะไหล่ที่ต้องเปลี่ยน']?.split(/[+,]/).map(p => p.trim()).filter(Boolean) || [];
-                const prices = String(item['ราคาอะไหล่'] || '').split(/[,;|+]/).map(p => p.trim()).filter(Boolean);
-
-                if (parts.length === 0 && prices.length === 0) {
-                    return <span className="text-slate-500">-</span>;
-                }
-
-                return (
-                    <div className="space-y-1 text-xs">
-                        {parts.map((part, index) => (
-                            <div key={index} className="flex justify-between items-center">
-                                <span className="text-slate-700">{part}</span>
-                                <span className="font-medium text-slate-800">{formatPrice(prices[index] || 0)}</span>
-                            </div>
-                        ))}
-                    </div>
-                );
-            };
 
             return (
                 <div>

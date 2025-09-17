@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -1481,7 +1482,19 @@
                 return weeks.filter(w => w.items.length > 0);
             };
             const { weeklyReport, monthData } = useMemo(() => {
-                const filtered = data.filter(item => { const date = parseDate(item['วันที่แจ้งซ่อม(APP)']); return date && date.getFullYear() === year && date.getMonth() === month; });
+                const filtered = data.filter(item => { 
+                    const date = parseDate(item['วันที่แจ้งซ่อม(APP)']); 
+                    if (!date || date.getFullYear() !== year || date.getMonth() !== month) return false;
+                    
+                    // กรองรายการที่มีคำว่า "ราคายาง" ออก
+                    const isNotTirePrice = !(
+                        (item['ประเภท'] && typeof item['ประเภท'] === 'string' && item['ประเภท'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการซ่อม'] && typeof item['รายการซ่อม'] === 'string' && item['รายการซ่อม'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการอะไหล่'] && typeof item['รายการอะไหล่'] === 'string' && item['รายการอะไหล่'].toLowerCase().includes('ราคายาง'))
+                    );
+                    
+                    return isNotTirePrice;
+                });
                 return { weeklyReport: groupDataByWeek(filtered, year, month), monthData: filtered };
             }, [data, year, month]);
             const monthlyTotalCount = monthData.length;
@@ -1780,7 +1793,16 @@
 
                 const currentMonthData = vehicleData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    return date && date.getFullYear() === selectedYear && date.getMonth() === selectedMonth;
+                    if (!date || date.getFullYear() !== selectedYear || date.getMonth() !== selectedMonth) return false;
+                    
+                    // กรองรายการที่มีคำว่า "ราคายาง" ออก
+                    const isNotTirePrice = !(
+                        (item['ประเภท'] && typeof item['ประเภท'] === 'string' && item['ประเภท'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการซ่อม'] && typeof item['รายการซ่อม'] === 'string' && item['รายการซ่อม'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการอะไหล่'] && typeof item['รายการอะไหล่'] === 'string' && item['รายการอะไหล่'].toLowerCase().includes('ราคายาง'))
+                    );
+                    
+                    return isNotTirePrice;
                 });
                 const currentMonthTotal = currentMonthData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
 
@@ -1791,7 +1813,16 @@
 
                 const previousMonthData = vehicleData.filter(item => {
                     const date = parseDate(item['วันที่แจ้งซ่อม(APP)']);
-                    return date && date.getFullYear() === prevYear && date.getMonth() === prevMonth;
+                    if (!date || date.getFullYear() !== prevYear || date.getMonth() !== prevMonth) return false;
+                    
+                    // กรองรายการที่มีคำว่า "ราคายาง" ออก
+                    const isNotTirePrice = !(
+                        (item['ประเภท'] && typeof item['ประเภท'] === 'string' && item['ประเภท'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการซ่อม'] && typeof item['รายการซ่อม'] === 'string' && item['รายการซ่อม'].toLowerCase().includes('ราคายาง')) ||
+                        (item['รายการอะไหล่'] && typeof item['รายการอะไหล่'] === 'string' && item['รายการอะไหล่'].toLowerCase().includes('ราคายาง'))
+                    );
+                    
+                    return isNotTirePrice;
                 });
                 const previousMonthTotal = previousMonthData.reduce((sum, item) => sum + calculateTotalCost(item), 0);
                 
@@ -3355,7 +3386,7 @@
                                 <ul className="list-disc list-inside mt-2">
                                     <li>การเชื่อมต่อ Google Sheets</li>
                                     <li>สิทธิ์การเข้าถึงข้อมูล</li>
-                                    <li>ข้อมูลในชีต "บันทึกการย้ายงาน"</li>
+                                    <li>ข้อมูลในชีต "สำรองบันทึกการย้ายงาน"</li>
                                 </ul>
                             </div>
                         </div>

@@ -404,20 +404,32 @@
             if (!dateString) return null;
             const date = new Date(dateString);
             if (isNaN(date.getTime())) return null;
-            if (date.getFullYear() > 2200) { date.setFullYear(date.getFullYear() - 543); }
+            // แปลงปี พ.ศ. เป็น ค.ศ. (ถ้าปีมากกว่า 2500 แสดงว่าเป็นปี พ.ศ.)
+            if (date.getFullYear() > 2500) { 
+                date.setFullYear(date.getFullYear() - 543); 
+            }
             return date;
         };
         const formatDate = (dateString) => {
             if (!dateString) return 'N/A';
             const date = parseDate(dateString);
             if (!date) return 'Invalid Date';
-            return date.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+            // Use manual formatting to avoid Buddhist Era conversion
+            const day = date.getDate().toString().padStart(2, '0');
+            const months = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+            const month = months[date.getMonth()];
+            const year = date.getFullYear();
+            return `${day} ${month} ${year}`;
         };
         const formatSimpleDate = (dateString) => {
             if (!dateString) return 'N/A';
             const date = parseDate(dateString);
             if (!date) return 'Invalid Date';
-            return date.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            // Use manual formatting to avoid Buddhist Era conversion
+            const day = date.getDate().toString().padStart(2, '0');
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
         };
         const formatTime = (timeValue) => {
             if (!timeValue) return 'N/A';
@@ -5201,7 +5213,7 @@
                                                             const laborCost = parseFloat(item['ค่าแรง']) || 0;
                                                             return (
                                                                 <tr key={itemIndex}>
-                                                                    <td>{new Date(item['วันที่แจ้งซ่อม(APP)']).toLocaleDateString('th-TH')}</td>
+                                                                    <td>{formatSimpleDate(item['วันที่แจ้งซ่อม(APP)'])}</td>
                                                                     <td>{item.ประเภท}</td>
                                                                     <td>{item['รายการซ่อม'] || '-'}</td>
                                                                     <td className="price-cell">{partsCost.toLocaleString()}</td>
@@ -5243,7 +5255,7 @@
                                             const laborCost = parseFloat(item['ค่าแรง']) || 0;
                                             return (
                                                 <tr key={index}>
-                                                    <td>{new Date(item['วันที่แจ้งซ่อม(APP)']).toLocaleDateString('th-TH')}</td>
+                                                    <td>{formatSimpleDate(item['วันที่แจ้งซ่อม(APP)'])}</td>
                                                     <td>{item.ประเภท}</td>
                                                     <td>{item['รายการซ่อม'] || '-'}</td>
                                                     <td className="price-cell">{partsCost.toLocaleString()}</td>

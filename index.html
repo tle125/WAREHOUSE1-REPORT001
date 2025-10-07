@@ -82,6 +82,7 @@
           border-radius: 10px;
           box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px,
             rgba(27, 133, 219, 0.5) 5px 10px 15px;
+          overflow: visible;
         }
 
         .nav-button {
@@ -285,6 +286,7 @@
                 box-shadow: none; /* Remove shadow */
                 height: 70px; /* Increased height */
                 padding: 0 8px; /* Add horizontal padding */
+                overflow: visible;
             }
             .nav-button {
                 width: auto; /* Auto width */
@@ -300,17 +302,23 @@
             /* Mobile dropdown adjustments */
             .more-menu-container {
                 flex: 1;
+                position: relative;
+                overflow: visible;
             }
             
             .more-dropdown {
-                top: calc(100% + 10px);
+                position: fixed;
+                bottom: 85px;
                 left: 50%;
                 transform: translateX(-50%);
-                min-width: 180px;
-                max-width: 220px;
+                min-width: 200px;
+                max-width: 250px;
                 max-height: none;
-                overflow-y: visible;
+                overflow: visible;
                 white-space: nowrap;
+                z-index: 1001;
+                box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.2);
+                display: block !important;
             }
             
             .dropdown-item {
@@ -340,6 +348,54 @@
             .nav-text {
                 font-size: 0.65rem; /* Smaller text */
                 margin-top: 3px;
+            }
+            
+            /* Mobile dropdown menu styles */
+            .mobile-more-dropdown {
+                position: fixed;
+                bottom: 85px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: white;
+                border-radius: 12px;
+                box-shadow: 0 -4px 25px rgba(0, 0, 0, 0.2);
+                z-index: 1001;
+                min-width: 200px;
+                max-width: 250px;
+                overflow: hidden;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+            
+            .mobile-dropdown-item {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px 16px;
+                width: 100%;
+                background: white;
+                border: none;
+                text-align: left;
+                font-size: 14px;
+                color: #374151;
+                transition: all 0.2s ease;
+                min-height: 44px;
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            }
+            
+            .mobile-dropdown-item:last-child {
+                border-bottom: none;
+            }
+            
+            .mobile-dropdown-item:hover {
+                background-color: #f3f4f6;
+                color: #1e40af;
+            }
+            
+            .mobile-dropdown-item.active {
+                background-color: #eff6ff;
+                color: #1e40af;
+                font-weight: 600;
+            }
                 font-weight: 500;
                 text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3); /* Text shadow for better readability */
             }
@@ -3780,9 +3836,41 @@
                         </div>
                         
                         <div className="bg-green-50 p-4 rounded-lg">
-                            <h3 className="text-lg font-semibold text-green-800 mb-2">จำนวนรอบขนส่ง</h3>
+                            <h3 className="text-lg font-semibold text-green-800 mb-2">ค่าใช้จ่ายรถไฟฟ้าต่อตัน</h3>
                             <p className="text-2xl font-bold text-green-600">
-                                {filteredData.filter(item => item['เบอร์รถ'] && item['เบอร์รถ'].trim() !== '').length.toLocaleString()} รอบ
+                                {(() => {
+                                    // กรองข้อมูลรถไฟฟ้า TT-19 ถึง TT-23
+                                    const evData = filteredData.filter(item => {
+                                        const vehicleNum = item['เบอร์รถ'];
+                                        return vehicleNum && ['TT-19', 'TT-20', 'TT-21', 'TT-22', 'TT-23'].includes(vehicleNum);
+                                    });
+                                    
+                                    // คำนวณน้ำหนักรวมของรถไฟฟ้า (แปลงเป็นตัน)
+                                    const totalEvWeight = evData.reduce((sum, item) => {
+                                        const weight = parseFloat(item['น้ำหนัก'] || item['น้ำหนัก (กก.)'] || 0);
+                                        return sum + weight;
+                                    }, 0) / 1000;
+                                    
+                                    // คำนวณค่าใช้จ่ายรวมของรถไฟฟ้า (ใช้ราคาจาก EV_CONFIG)
+                                    const EV_CONFIG = {
+                                        'TT-19': { name: 'TT-19', price: 533930 },
+                                        'TT-20': { name: 'TT-20', price: 1660000 },
+                                        'TT-21': { name: 'TT-21', price: 1660000 },
+                                        'TT-22': { name: 'TT-22', price: 1660000 },
+                                        'TT-23': { name: 'TT-23', price: 1660000 },
+                                    };
+                                    
+                                    const totalEvCost = evData.reduce((sum, item) => {
+                                        const vehicleNum = item['เบอร์รถ'];
+                                        const vehiclePrice = EV_CONFIG[vehicleNum]?.price || 0;
+                                        return sum + vehiclePrice;
+                                    }, 0);
+                                    
+                                    // คำนวณค่าใช้จ่ายต่อตัน
+                                    const costPerTon = totalEvWeight > 0 ? totalEvCost / totalEvWeight : 0;
+                                    
+                                    return costPerTon.toLocaleString('th-TH', {maximumFractionDigits: 0});
+                                })()} บาท/ตัน
                             </p>
                         </div>
                         
@@ -5766,7 +5854,7 @@
                                         <Icons name={showMoreMenu ? "chevron-up" : "chevron-down"} className="w-4 h-4 ml-1" />
                                     </button>
                                     
-                                    {showMoreMenu && (
+                                    {showMoreMenu && !isMobile && (
                                         <div className="more-dropdown">
                                             <button 
                                                 title="เปรียบเทียบการใช้น้ำมัน" 
@@ -5818,6 +5906,57 @@
                             </div>
                         </nav>
                     </header>
+                    
+                    {/* Mobile dropdown menu - rendered outside navigation */}
+                    {showMoreMenu && isMobile && (
+                        <div className="mobile-more-dropdown">
+                            <button 
+                                title="เปรียบเทียบการใช้น้ำมัน" 
+                                className={`mobile-dropdown-item ${activeApp === 'energy' ? 'active' : ''}`} 
+                                onClick={() => {
+                                    setActiveApp('energy');
+                                    setShowMoreMenu(false);
+                                }}
+                            >
+                                <Icons name="balance" className="w-5 h-5" />
+                                <span>เปรียบเทียบน้ำมัน</span>
+                            </button>
+                            <button 
+                                title="แนวโน้มการใช้น้ำมัน" 
+                                className={`mobile-dropdown-item ${activeApp === 'ev_impact' ? 'active' : ''}`} 
+                                onClick={() => {
+                                    setActiveApp('ev_impact');
+                                    setShowMoreMenu(false);
+                                }}
+                            >
+                                <dotlottie-wc src="https://lottie.host/ddc40909-2718-4242-927f-e3fda3ac77ca/L8DWV25LrA.lottie" style={{width: '20px', height: '20px'}} speed="1" autoplay loop></dotlottie-wc>
+                                <span>แนวโน้มน้ำมัน</span>
+                            </button>
+                            <button 
+                                title="จุดคุ้มทุน EV" 
+                                className={`mobile-dropdown-item ${activeApp === 'breakeven' ? 'active' : ''}`} 
+                                onClick={() => {
+                                    setActiveApp('breakeven');
+                                    setShowMoreMenu(false);
+                                }}
+                            >
+                                <Icons name="calculator" className="w-5 h-5" />
+                                <span>คุ้มทุน EV</span>
+                            </button>
+                            <button 
+                                title="รายงานราคายาง" 
+                                className={`mobile-dropdown-item ${activeApp === 'tire_report' ? 'active' : ''}`} 
+                                onClick={() => {
+                                    setActiveApp('tire_report');
+                                    setShowMoreMenu(false);
+                                }}
+                            >
+                                <span className="w-5 h-5 text-lg">🛞</span>
+                                <span>ราคายาง</span>
+                            </button>
+                        </div>
+                    )}
+                    
                     <main>
                         {renderActiveApp()}
                     </main>
